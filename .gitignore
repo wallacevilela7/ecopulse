@@ -1,0 +1,59 @@
+# ==========================================
+# EcoPulse - .gitignore
+# Projeto Integrado Multidisciplinar II (PIM II - UNIP)
+# ==========================================
+
+# Ambientes Virtuais e Python
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+.coverage
+htmlcov/
+
+# Node & Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+.cache/
+
+# PlatformIO & Embarcados (C++)
+.pio/
+.vscode/.pio*
+*.o
+*.elf
+*.bin
+*.hex
+
+# Variáveis de Ambiente e Segredos
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+
+# IDEs e Editores
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs e Dados Temporários
+logs/
+*.log
+scratch/
+temp/
+tmp/

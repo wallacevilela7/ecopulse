@@ -1,0 +1,23 @@
+; ============================================================================
+; PlatformIO Configuration File (Template) - EcoPulse ESP32
+; ============================================================================
+
+[env:esp32dev]
+platform = espressif32
+board = esp32dev
+framework = arduino
+
+; Velocidade do Monitor Serial
+monitor_speed = 115200
+upload_speed = 921600
+
+; Bibliotecas gerenciadas automaticamente pelo PlatformIO
+lib_deps =
+    adafruit/DHT sensor library@^1.4.6
+    adafruit/Adafruit Unified Sensor@^1.1.14
+    adafruit/Adafruit BMP280 Library@^2.6.8
+    bblanchon/ArduinoJson@^7.0.4
+
+; Flags de compilação
+build_flags = 
+    -D CORE_DEBUG_LEVEL=0

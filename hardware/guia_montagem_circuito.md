@@ -1,6 +1,6 @@
 # 📘 Manual Ilustrado de Montagem: Estação Meteorológica IoT com ESP32
 
-Este documento apresenta o guia passo a passo da montagem física da estação **EcoPulse** em bancada, tomando como referência a disposição real em **duas protoboards de 830 pontos acopladas em paralelo pelas travas plásticas laterais**, com a **Fonte MB102 na extremidade esquerda** e o **microcontrolador ESP32 na extremidade direita** (interligando a fileira `a` da placa superior à fileira `j` da placa inferior), mantendo a **área central desobstruída para os sensores**, com aproveitamento do **kit de jumpers rígidos em U**.
+Este documento apresenta o guia passo a passo da montagem física da estação **EcoPulse** em bancada, adotando a arquitetura de **Menor Caminho e Fiação Rente (Topologia Zero-Crossing)**. As protoboards estão acopladas horizontalmente pelas **travas plásticas laterais**, com a **Fonte MB102 na extremidade esquerda**, o **ESP32 na extremidade direita** e os sensores agrupados por **afinidade de borda** (sensores digitais/I2C no topo, sensores analógicos na base), permitindo que mais de **90% das conexões sejam feitas com jumpers rígidos em U rentes à matriz**, eliminando por completo o emaranhado de fios.
 
 Documentos complementares de engenharia:
 * [Tabela de Pinout Completa](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/pinout_conexoes.md)
@@ -11,22 +11,19 @@ Documentos complementares de engenharia:
 
 ---
 
-## 🖼️ Visão Geral do Circuito com Fonte MB102 Integrada
+## 🖼️ Visão Geral do Circuito (Layout de Menor Caminho)
 
-![Esquemático Completo com Fonte MB102](assets/protoboard_esquematico_mb102.png)
+![Esquemático de Menor Caminho com Fonte MB102](assets/protoboard_esquematico_mb102.png)
 
 > [!IMPORTANT]
-> **Objetivo Estratégico da Fonte MB102 (Controle Seletivo Bi-Volt):**  
-> A fonte MB102 tem como propósito fundamental o **controle independente de voltagem (5V vs 3.3V)** para atender aos diferentes requisitos de cada sensor da bancada:
-> 1. **5.0V Regulado (Barramento 1 - Superior):** Alimenta o filamento resistivo de aquecimento do sensor de gases **MQ-135** (que exige 5V contínuos para clivagem química dos gases).
-> 2. **3.3V Regulado (Barramentos 2, 3 e 4):** Alimenta a lógica central do microcontrolador **ESP32** e os sensores digitais/analógicos sensíveis (**BMP280**, DHT22, LDR e Chuva), que queimariam sob 5V.
-> 3. **GND Comum Unificado:** Todos os trilhos negativos estão interligados por jumpers pretos, mantendo um referencial elétrico único de 0V para leituras analógicas (ADC) estáveis.
+> **Vantagens da Arquitetura de Menor Caminho (Zero-Crossing):**
+> 1. **Zero Cruzamentos Entre Placas:** Sensores digitais e I2C cujos pinos estão no topo do ESP32 (`D4`, `D21`, `D22`) ficam na **Protoboard Superior**. Sensores analógicos cujos pinos estão na base do ESP32 (`D34`, `D35`, `D32`) ficam na **Protoboard Inferior**.
+> 2. **Distâncias Curtíssimas (2 a 7 furos):** Sensores colados ao microcontrolador usam jumpers rígidos em U retos, como trilhas de circuito impresso (PCB).
+> 3. **Alimentação 100% Local (Jumpers 2 Furos):** Cada sensor puxa VCC e GND diretamente do trilho adjacente com os jumpers verdes de 2 furos.
 
 ---
 
-## 🛠️ 1. Topografia das Coordenadas e Trilhos de Alimentação
-
-Considere as duas protoboards de 830 pontos acopladas horizontalmente pelas travas plásticas laterais (Superior e Inferior):
+## 🛠️ 1. Topografia das Coordenadas da Dupla Protoboard
 
 ```text
 [FONTE MB102 - ESQUERDA]                                                    [ESP32 - DIREITA]
@@ -34,175 +31,124 @@ Considere as duas protoboards de 830 pontos acopladas horizontalmente pelas trav
 | [-] Linha Azul: GND Comum                                                                 |
 | [+] Linha Vermelha: BARRAMENTO 1 -> 5.0V EXCLUSIVO P/ MQ-135 (Jumper MB102 em 5V)         |
 +-------------------------------------------------------------------------------------------+
-|  Protoboard Superior: Fileiras 'j' a 'f' | Colunas 1 a 63                                 |
+|  Proto Sup (Fileiras 'j'-'f'): MQ-135 (Cols 16-19) + Divisor (Cols 20-22)                 |
 |  ==================== Canal Central Divisório ====================                        |
-|  Protoboard Superior: Fileiras 'e' a 'b' (Livres) | Fileira 'a' (Pinos Sup. ESP32: 48-62) |
+|  Proto Sup (Fileiras 'e'-'a'): BMP280 (Cols 43-48) | DHT22 (Cols 54-56) | ESP32 (48-62)   |
 +-------------------------------------------------------------------------------------------+
-| [+] Linha Vermelha: BARRAMENTO 2 -> 3.3V SEGURO (Jumper MB102 em 3.3V)                    |
+| [+] Linha Vermelha: BARRAMENTO 2 -> 3.3V SEGURO (Alimenta BMP280, DHT22 e ESP32)          |
 | [-] Linha Azul: GND Comum                                                                 |
 +===========================================================================================+
-| [== TRAVAS LATERAIS ENCAIXADAS UNINDO AS DUAS PROTOBOARDS ==]                             |
+| [== SUPORTEZINHO PLÁSTICO / TRAVAS LATERAIS ACOPLADAS ENTRE AS PROTOBOARDS ==]            |
 +===========================================================================================+
-| [+] Linha Vermelha: BARRAMENTO 3 -> 3.3V (Ponte vinda do Barramento 2)                    |
+| [+] Linha Vermelha: BARRAMENTO 3 -> 3.3V (Alimenta Chuva e LDR)                           |
 | [-] Linha Azul: GND Comum                                                                 |
 +-------------------------------------------------------------------------------------------+
-|  Protoboard Inferior: Fileira 'j' (Pinos Inf. ESP32: 48-62) | Fileiras 'i' a 'f' (Livres) |
+|  Proto Inf (Fileiras 'j'-'f'): Chuva (Cols 36-39) | LDR (Cols 44-47) | ESP32 Base (48-62) |
 |  ==================== Canal Central Divisório ====================                        |
-|  Protoboard Inferior: Fileiras 'e' a 'a' | Colunas 1 a 63                                 |
+|  Proto Inf (Fileiras 'e'-'a'): ÁREA INFERIOR DESIMPEDIDA (Livre de fios e componentes!)   |
 +-------------------------------------------------------------------------------------------+
-| [+] Linha Vermelha: BARRAMENTO 4 -> 3.3V (Alimentação BMP280 / DHT22)                     |
+| [+] Linha Vermelha: BARRAMENTO 4 -> 3.3V (Reserva p/ Expansão Futura)                    |
 | [-] Linha Azul: GND Comum                                                                 |
 +-------------------------------------------------------------------------------------------+
 ```
-
-> [!WARNING]
-> **Atenção Crítica: Pontes da Coluna 30 nas Protoboards de 830 Pontos**  
-> As trilhas de alimentação laterais possuem uma **interrupção física interna bem no centro** (entre as colunas 30 e 33).  
-> **Ação obrigatória:** Insira jumpers rígidos em U (de 3 a 5 furos, cores laranja ou vermelha) unindo a metade esquerda à metade direita em todos os barramentos utilizados (1, 2, 3 e 4). Sem essas pontes, a energia da MB102 (na coluna 1) não chegará ao ESP32 (nas colunas 48-62)!
 
 ---
 
-## ⚡ Passo 1: Fonte MB102 e Malha de Energia
+## ⚡ Passo 1: Fonte MB102 e Distribuição de Energia
 
-A fonte MB102 é inserida na **extremidade esquerda da Protoboard Superior** (colunas `1` a `8`), encaixando seus 4 pinos nos Barramentos 1 e 2.
+A fonte MB102 fica na extremidade esquerda da Protoboard Superior (colunas 1 a 8):
 
-```text
-   [FONTE MB102]
-  +-------------+
-  | [Jumper:5V] |---> [+] Barramento 1 (Vermelho): 5.0V EXCLUSIVO (MQ-135)
-  |             |---> [-] Barramento 1 (Azul)    : GND Comum ---+
-  |  (Proto Sup)|                                               |
-  | [Jumper:3V3]|---> [+] Barramento 2 (Vermelho): 3.3V --------|--+
-  +-------------+---> [-] Barramento 2 (Azul)    : GND Comum ---|--|---+
-                                                                |  |   |
-                      [+] Barramento 3 (Vermelho): 3.3V <-------|--+   | (Fios Pretos:
-                      [-] Barramento 3 (Azul)    : GND Comum <--+------|  GND Comum)
-                                                                       |
-                      [+] Barramento 4 (Vermelho): 3.3V <--------------+ (Fios Vermelhos: 3.3V)
-                      [-] Barramento 4 (Azul)    : GND Comum <---------+ (Fios Pretos: GND)
-```
-
-### Instruções de Montagem:
-1. **Configuração dos Jumpers da MB102:**
-   - **Seletor Superior:** Jumper amarelo em **`5V`** (alimenta o Barramento 1 com 5V).
-   - **Seletor Inferior:** Jumper amarelo em **`3.3V`** (alimenta o Barramento 2 com 3.3V).
-2. **Fixação:** Encaixe a MB102 na extremidade esquerda da Protoboard Superior (colunas 1 a 8), alinhando o conector USB para cima e o Jack DC para baixo.
-3. **Ponte de GND Comum (Jumpers Pretos):**
-   - Interligue o GND (-) do Barramento 1 ao GND (-) do Barramento 2.
-   - Interligue o GND (-) do Barramento 2 ao GND (-) do Barramento 3.
-   - Interligue o GND (-) do Barramento 3 ao GND (-) do Barramento 4.
-4. **Distribuição de 3.3V (Jumpers Vermelhos):**
-   - Interligue a linha vermelha (+) do Barramento 2 à linha vermelha (+) do Barramento 3.
-   - Interligue a linha vermelha (+) do Barramento 3 à linha vermelha (+) do Barramento 4.
-   - *Nunca ligue o Barramento 1 (5V) nos demais barramentos vermelhos!*
+1. **Seletores Amarelos:**
+   - **Lado Superior:** Jumper em **`5V`** -> Energiza o Barramento 1 com 5.0V exclusivo para o MQ-135.
+   - **Lado Inferior:** Jumper em **`3.3V`** -> Energiza o Barramento 2 com 3.3V seguro.
+2. **Malha de GND Comum (Jumpers Pretos):**
+   - Interligue o Barramento 1 (-) ao Barramento 2 (-).
+   - Interligue o Barramento 2 (-) ao Barramento 3 (-).
+   - Interligue o Barramento 3 (-) ao Barramento 4 (-).
+3. **Distribuição de 3.3V (Jumpers Vermelhos):**
+   - Interligue o Barramento 2 (+) ao Barramento 3 (+).
+   - Interligue o Barramento 3 (+) ao Barramento 4 (+).
+4. **Pontes da Coluna 30:** Insira jumpers rígidos em U (3 a 5 furos) unindo o lado esquerdo ao direito nas linhas vermelhas e azuis de todos os barramentos utilizados.
 
 ---
 
 ## 🧠 Passo 2: Microcontrolador ESP32 no Vão Direito
 
-O ESP32 é fixado no **lado direito da bancada** (colunas `48` a `62`), posicionado de forma que seu corpo passe por cima dos Barramentos 2 e 3:
-* **Pinos Superiores:** Espetados na **Fileira `a`** da Protoboard Superior (colunas `48` a `62`).
-  - As fileiras **`b`, `c`, `d`, `e`** (4 furos livres) ficam voltadas para cima para receberem os jumpers!
-* **Pinos Inferiores:** Espetados na **Fileira `j`** da Protoboard Inferior (colunas `48` a `62`).
-  - As fileiras **`i`, `h`, `g`, `f`** (4 furos livres) ficam voltadas para baixo para receberem os jumpers!
-* **Orientação:** Porta Micro-USB voltada para a **DIREITA** (lado externo da mesa) e Antena PCB voltada para a **ESQUERDA** (centro da bancada).
-
-```text
-Protoboard Superior (Parte Inferior - Fileiras 'e' a 'a'):
-Coluna:    ...  48   49   50   51   52   53   ...   58   ...   61   62
-Fileira e: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]  <-- 4 furos livres p/ jumpers!
-Fileira d: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]
-Fileira c: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]
-Fileira b: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]
-Fileira a: ... (P)  (P)  (P)  (P)  (P)  (P)  ...  (P)  ...  (P)  (P)  <-- Pinos Superiores do ESP32
-Pino:          D23  D22  TX0  RX0  D21  D19  ...  D4   ...  GND  3V3
-               ======================================================
-               | [Antena]          ESP32 NODEMCU           [USB PC] |  <-- Sobre o vão central
-               ======================================================
-Pino:          EN   VP   VN   D34  D35  D32  ...  D14  ...  GND  VIN
-Fileira j: ... (P)  (P)  (P)  (P)  (P)  (P)  ...  (P)  ...  (P)  (P)  <-- Pinos Inferiores do ESP32
-Fileira i: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]
-Fileira h: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]
-Fileira g: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]
-Fileira f: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]  <-- 4 furos livres p/ jumpers!
-Protoboard Inferior (Parte Superior - Fileiras 'j' a 'f')
-```
-
-### Mapeamento dos Pinos no ESP32:
-* **Topo (Protoboard Superior - Fileira `a`):**
-  - **Coluna 62:** Pino `3V3` -> Ligue com jumper curto de 2 furos no **Barramento 2 (`+` 3.3V)**.
-  - **Coluna 61:** Pino `GND` -> Ligue com jumper curto de 2 furos no **Barramento 2 (`-` GND)**.
-  - **Coluna 58:** Pino `D4` -> Recebe o sinal `OUT` do sensor DHT22.
-  - **Coluna 52:** Pino `D21` -> Barramento I2C `SDA` do sensor BMP280.
-  - **Coluna 49:** Pino `D22` -> Barramento I2C `SCL` do sensor BMP280.
-* **Base (Protoboard Inferior - Fileira `j`):**
-  - **Coluna 61:** Pino `GND` -> Ligue no **Barramento 3 (`-` GND)**.
-  - **Coluna 53:** Pino `D32` (ADC1) -> Recebe a saída atenuada do sensor MQ-135.
-  - **Coluna 52:** Pino `D35` (ADC1) -> Recebe a saída analógica do Sensor de Chuva.
-  - **Coluna 51:** Pino `D34` (ADC1) -> Recebe a saída analógica do Módulo LDR.
+Espetado nas colunas `48` a `62`, com a porta Micro-USB voltada para a direita:
+* **Pinos Superiores (Fileira `a` da Proto Sup):**
+  - **Coluna 62 (`3V3`):** Jumper U de 2 furos (verde pequeno) direto no Barramento 2 (+ 3.3V).
+  - **Coluna 61 (`GND`):** Jumper U de 2 furos (verde pequeno) direto no Barramento 2 (- GND).
+  - **Coluna 58 (`D4`):** Entrada One-Wire do DHT22.
+  - **Coluna 52 (`D21`):** Entrada I2C SDA do BMP280.
+  - **Coluna 49 (`D22`):** Entrada I2C SCL do BMP280.
+* **Pinos Inferiores (Fileira `j` da Proto Inf):**
+  - **Coluna 61 (`GND`):** Jumper U de 2 furos (verde pequeno) direto no Barramento 3 (- GND).
+  - **Coluna 53 (`D32`):** Entrada analógica atenuada do MQ-135 (ADC1).
+  - **Coluna 52 (`D35`):** Entrada analógica do Sensor de Chuva (ADC1).
+  - **Coluna 51 (`D34`):** Entrada analógica do Módulo LDR (ADC1).
 
 ---
 
-## 🧭 Passo 3: Sensores Climáticos 3.3V (DHT22 e BMP280)
+## 🧭 Passo 3: Cluster Superior I2C & Digital (BMP280 e DHT22)
 
-Instalados na **Protoboard Inferior** (na área central livre, colunas 25 a 40):
+Instalados na **Protoboard Superior**, colados no ESP32:
 
-### 1. DHT22 (Temperatura e Umidade - Colunas 25 a 28, Fileira `e`):
-* **Pino `+` (VCC):** Jumper para o Barramento 4 (`+` 3.3V).
-* **Pino `OUT` (DATA):** Jumper amarelo (médio/longo) ligado diretamente ao **GPIO 4 (coluna 58, fileira `b`)**.
-* **Pino `-` (GND):** Jumper para o Barramento 4 (`-` GND).
+### 1. Sensor DHT22 (Colunas 54 a 56, Fileira `e`):
+* **Pino `+` (VCC - Col 54):** Jumper U de 2 furos (verde) no Barramento 2 (+ 3.3V).
+* **Pino `OUT` (DAT - Col 55):** Jumper U de 3 furos (laranja) direto no **pino D4 (coluna 58, fileira `b`)**! Distância de apenas 3 furos!
+* **Pino `-` (GND - Col 56):** Jumper U de 2 furos (verde) no Barramento 2 (- GND).
 
-### 2. BMP280 (Pressão e Altitude I2C - Colunas 35 a 40, Fileira `e`):
-* **`VCC` (Coluna 35):** Jumper no Barramento 4 (`+` 3.3V). *(Nunca em 5V!)*
-* **`GND` (Coluna 36):** Jumper no Barramento 4 (`-` GND).
-* **`SCL` (Coluna 37):** Jumper verde ligado diretamente ao **GPIO 22 (coluna 49, fileira `b`)**.
-* **`SDA` (Coluna 38):** Jumper azul ligado diretamente ao **GPIO 21 (coluna 52, fileira `b`)**.
-* **`CSB` (Coluna 39):** Deixar desconectado.
-* **`SDO` (Coluna 40):** Jumper preto para o Barramento 4 (`-` GND), fixando o endereço I2C em `0x76`.
-
----
-
-## ☀️ Passo 4: Sensores Ambientais na Placa Superior (LDR, Chuva e MQ-135)
-
-Instalados na **Protoboard Superior** (área central livre, colunas 20 a 45):
-
-### 1. Sensor MQ-135 (Gases - Colunas 20 a 24, Fileira `f`):
-* **`VCC` (Coluna 20):** Conectado diretamente na linha vermelha do **Barramento 1 (5.0V Exclusivo)**.
-* **`GND` (Coluna 21):** Conectado na linha azul do **Barramento 1 (`-` GND)**.
-* **`AO` (Coluna 24):** Conectado ao divisor resistivo ($1\text{k}\Omega / 2\text{k}\Omega$). O ponto central do divisor é conectado via jumper roxo ao **GPIO 32 (coluna 53, fileira `i`)**.
-
-### 2. Sensor de Chuva LM393 (Colunas 28 a 38, Fileira `f`):
-* **`VCC`:** Barramento 2 (`+` 3.3V).
-* **`GND`:** Barramento 2 (`-` GND).
-* **`AO`:** Jumper laranja conectado ao **GPIO 35 (coluna 52, fileira `i`)**.
-* **Placa Coletora DSK MH-RD:** Ligada aos dois pinos superiores do comparador com 2 cabos fêmea-fêmea.
-
-### 3. Módulo LDR Azul (Colunas 40 a 45, Fileira `f`):
-* **`VCC`:** Barramento 2 (`+` 3.3V).
-* **`GND`:** Barramento 2 (`-` GND).
-* **`AO`:** Jumper branco conectado ao **GPIO 34 (coluna 51, fileira `i`)**.
+### 2. Sensor BMP280 (Colunas 43 a 48, Fileira `e`):
+* **Pino `VCC` (Col 43):** Jumper U de 2 furos no Barramento 2 (+ 3.3V). *(Nunca em 5V!)*
+* **Pino `GND` (Col 44):** Jumper U de 2 furos no Barramento 2 (- GND).
+* **Pino `SCL` (Col 45):** Jumper U de 4 furos (vermelho/laranja) direto no **pino D22 (coluna 49, fileira `b`)**! Distância de apenas 4 furos!
+* **Pino `SDA` (Col 46):** Jumper U de 6 furos (amarelo) direto no **pino D21 (coluna 52, fileira `b`)**! Distância de apenas 6 furos!
+* **Pino `CSB` (Col 47):** Desconectado.
+* **Pino `SDO` (Col 48):** Jumper U de 2 furos no Barramento 2 (- GND), fixando endereço I2C em `0x76`.
 
 ---
 
-## 📏 5. Guia de Aplicação dos Jumpers Rígidos em U
+## ☀️ Passo 4: Cluster Inferior Analógico ADC1 (LDR e Chuva)
 
-Com base no seu kit de jumpers rígidos em U:
+Instalados na **Protoboard Inferior**, colados no ESP32:
 
-| Tamanho / Cor | Alcance | Aplicação Específica no Circuito EcoPulse |
+### 1. Módulo LDR Azul (Colunas 44 a 47, Fileira `f`):
+* **Pino `AO` (Col 44):** Jumper U de 7 furos (amarelo) direto no **pino D34 (coluna 51, fileira `i`)**!
+* **Pino `DO` (Col 45):** Desconectado.
+* **Pino `GND` (Col 46):** Jumper U de 2 furos no Barramento 3 (- GND).
+* **Pino `VCC` (Col 47):** Jumper U de 2 furos no Barramento 3 (+ 3.3V).
+
+### 2. Sensor de Chuva LM393 (Colunas 36 a 39, Fileira `f`):
+* **Pino `VCC` (Col 36):** Jumper U de 2 furos no Barramento 3 (+ 3.3V).
+* **Pino `GND` (Col 37):** Jumper U de 2 furos no Barramento 3 (- GND).
+* **Pino `DO` (Col 38):** Desconectado.
+* **Pino `AO` (Col 39):** Jumper U de 13 furos (azul/marrom) direto no **pino D35 (coluna 52, fileira `i`)**!
+* **Placa Coletora DSK MH-RD:** Ligada com 2 jumpers fêmea-fêmea nos 2 pinos frontais do comparador.
+
+---
+
+## 💨 Passo 5: Sensor MQ-135 e Divisor Resistivo (5V Exclusivo)
+
+Instalado na **Protoboard Superior** (colunas 16 a 19, fileira `f`), logo ao lado da fonte MB102:
+* **`VCC` (Col 16):** Jumper U de 2 furos direto na linha vermelha do **Barramento 1 (5.0V Exclusivo)**.
+* **`GND` (Col 17):** Jumper U de 2 furos direto na linha azul do **Barramento 1 (- GND)**.
+* **Divisor Resistivo (Colunas 20 a 22):**
+  - Resistor de $1\text{ k}\Omega$ liga da coluna 19 (`AO`) à coluna 21 (junção central).
+  - Resistor de $2\text{ k}\Omega$ liga da coluna 21 ao Barramento 1 (- GND).
+* **Linha de Sinal:** 1 jumper flexível ou rígido longo parte da coluna 21 (saída atenuada a máx 3.33V) e corre limpo pelo canal central até o **pino D32 (coluna 53, fileira `i`)** no ESP32.
+
+---
+
+## 📏 6. Tabela Mestra de Jumpers Rígidos em U (Kit da Bancada)
+
+Mapeamento exato de cada jumper do seu kit para cada ponto do circuito:
+
+| Tamanho / Cor | Alcance | Aplicação Específica no Layout EcoPulse |
 | :--- | :---: | :--- |
-| **Verde Pequeno** | 2 furos | Alimentação local do ESP32 (`3V3` e `GND` nos Barramentos 2 e 3); aterramento do pino `SDO` do BMP280. |
-| **Laranja / Vermelho** | 3 a 5 furos | **Pontes da Coluna 30** unindo a metade esquerda e direita dos Barramentos 1, 2, 3 e 4; ligação de resistores do divisor. |
-| **Amarelo / Azul** | 7 a 10 furos | Transposição entre as fileiras de sensores e os barramentos de alimentação mais próximos. |
-| **Longos (Branco / Marrom)** | > 15 furos | Pontes verticais de GND Comum e distribuição de 3.3V entre os barramentos 2, 3 e 4. |
-| **Jumpers Flexíveis (M-M)** | Variável | Linhas de sinal dos sensores que cruzam o centro da bancada até os pinos do ESP32 (`D4`, `D21`, `D22`, `D32`, `D34`, `D35`). |
-
----
-
-## ✅ 6. Checklist de Segurança Pré-Energização
-
-- [ ] **Alinhamento do ESP32:** Pinos superiores inseridos na fileira `a` e inferiores na fileira `j`, com 4 furos livres acessíveis em ambos os lados?
-- [ ] **Porta USB voltada para a direita:** Conector micro-USB desimpedido para conexão com o computador?
-- [ ] **Barramento 1 isolado em 5V:** Apenas o pino `VCC` do sensor MQ-135 está conectado na linha vermelha superior da fonte MB102?
-- [ ] **BMP280 estritamente em 3.3V:** VCC do sensor barométrico roxo ligado em 3.3V?
-- [ ] **Pontes da Coluna 30 instaladas:** Todas as 4 trilhas de alimentação possuem jumpers de continuidade no meio da placa?
-- [ ] **GND Comum unificado:** Todas as linhas azuis estão interligadas com a referência 0V da MB102 e do ESP32?
+| **Verde Pequeno** | 2 furos | VCC e GND locais de todos os 5 módulos; alimentação 3V3 e GND do ESP32; aterramento SDO do BMP280. |
+| **Laranja** | 3 furos | **OUT do DHT22** (coluna 55) ao **GPIO 4** (coluna 58). Fiação 100% rente! |
+| **Vermelho** | 4 a 5 furos | **SCL do BMP280** (coluna 45) ao **GPIO 22** (coluna 49); pontes centrais da coluna 30. |
+| **Amarelo** | 6 a 7 furos | **SDA do BMP280** (coluna 46) ao **GPIO 21** (coluna 52); **AO do LDR** (coluna 44) ao **GPIO 34** (coluna 51). |
+| **Azul / Marrom** | 10 a 13 furos | **AO do Sensor de Chuva** (coluna 39) ao **GPIO 35** (coluna 52). Linha reta sem arcos aéreos. |
+| **Jumpers Longos** | > 15 furos | Pontes verticais de GND Comum e distribuição de 3.3V entre os barramentos 2, 3 e 4. |
+| **Jumper Único (Roxo)** | Flexível | Linha de sinal do divisor do MQ-135 (coluna 21) ao GPIO 32 (coluna 53). |

@@ -1,96 +1,314 @@
-# Guia Passo a Passo de Montagem do Circuito
+# 📘 Manual Ilustrado de Montagem: Estação Meteorológica IoT com ESP32
 
-Este manual detalha o procedimento prático de montagem em bancada do circuito da estação **EcoPulse**, utilizando protoboards, fonte MB102, ESP32 e os sensores especificados no projeto.
+Este documento apresenta o guia passo a passo progressivo da montagem física da estação **EcoPulse** em **duas protoboards de 830 pontos acopladas em paralelo**. A metodologia adotada adiciona **um componente por vez**, utilizando diagramas esquemáticos em arte ASCII com coordenadas exatas de furos (colunas e fileiras) e padrão de cores de fiação para eliminar riscos de curtos-circuitos e garantir repetibilidade na bancada.
+
+Documentos complementares de engenharia:
+* [Tabela de Pinout Completa](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/pinout_conexoes.md)
+* [Cálculo Matemático dos Divisores de Tensão](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/calculo_divisores_tensao.md)
+* [Lista de Materiais (BOM)](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/README.md)
+* [Foto do Esquemático de Referência](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/assets/protoboard_esquematico.jpg)
 
 ---
 
-## 1. Princípios Básicos e Segurança Elétrica
+## 🛠️ 1. Visão Geral das Coordenadas da Dupla Protoboard
+
+Para seguir as coordenadas com precisão milimétrica, considere as duas protoboards unidas horizontalmente na sua bancada pelas travas plásticas laterais:
+
+```text
++-----------------------------------------------------------------------------------------+
+| [+] Barramento 1 (Vermelho) - Configurar Jumper MB102 em 5V (Aquecedor MQ-135)          |
+| [-] Barramento 1 (Azul)     - GND Comum                                                 |
++-----------------------------------------------------------------------------------------+
+|  Protoboard Superior: Fileiras 'f' a 'j' | Colunas 1 a 63                               |
+|  ==================== Canal Central (Divisória) ====================                    |
+|  Protoboard Superior: Fileiras 'a' a 'e' | Colunas 1 a 63                               |
++-----------------------------------------------------------------------------------------+
+| [+] Barramento 2 (Vermelho) - Configurar Jumper MB102 em 3.3V                           |
+| [-] Barramento 2 (Azul)     - GND Comum                                                 |
++-----------------------------------------------------------------------------------------+
+| [+] Barramento 3 (Vermelho) - Ponte de 3.3V (Vindo do Barramento 2)                     |
+| [-] Barramento 3 (Azul)     - GND Comum                                                 |
++-----------------------------------------------------------------------------------------+
+|  Protoboard Inferior: Fileiras 'f' a 'j' | Colunas 1 a 63                               |
+|  ==================== Canal Central (Divisória) ====================                    |
+|  Protoboard Inferior: Fileiras 'a' a 'e' | Colunas 1 a 63                               |
++-----------------------------------------------------------------------------------------+
+| [+] Barramento 4 (Vermelho) - Ponte de 3.3V                                             |
+| [-] Barramento 4 (Azul)     - GND Comum                                                 |
++-----------------------------------------------------------------------------------------+
+```
 
 > [!WARNING]
-> O microcontrolador ESP32 opera com nível lógico de **3.3V**. Aplicar tensões superiores a 3.6V em seus pinos GPIO causará danos irreversíveis ao chip. Siga rigorosamente as instruções de divisor de tensão para o sensor MQ-135.
-
-1. **Montagem sem Solda:** O circuito foi concebido para ser montado em protoboards através de jumpers, dispensando solda direta na placa de ensaio.
-2. **GND Comum (Referência Elétrica Única):** Todos os terminais negativos (GND da fonte MB102, GND do ESP32 e GNDs dos módulos de sensores) **devem** estar interligados no mesmo barramento negativo.
-3. **Desligamento Prévio:** Mantenha a fonte MB102 desligada da tomada e da porta USB durante todo o processo de inserção dos componentes e fios.
+> **Atenção Crítica: Pontes da Coluna 30 nas Protoboards de 830 Pontos**  
+> Na grande maioria das protoboards de 830 pontos, as trilhas de alimentação positiva (`+`) e negativa (`-`) possuem uma **interrupção física interna bem no centro** (entre as colunas 30 e 33).  
+> **Ação obrigatória:** Insira pequenos grampos ou fios jumpers unindo a metade esquerda à metade direita das linhas `+` e `-` em todos os barramentos que você for utilizar além da coluna 30. Sem essas pontes, sensores posicionados à direita da placa não receberão energia!
 
 ---
 
-## 2. Passo a Passo da Montagem
+## ⚡ Passo 1: Fonte de Alimentação MB102 e Malha de Energia
 
-### Etapa 1: Preparação e Acoplamento das Protoboards
-1. Pegue as duas protoboards de 830 pontos e una-as lado a lado utilizando as travas plásticas macho-fêmea presentes nas laterais.
-2. Essa união fornece espaço suficiente para acomodar o ESP32 de um lado e distribuir os 5 módulos de sensores no outro, mantendo a fiação limpa e desobstruída.
+O primeiro passo é preparar uma infraestrutura de energia segura e estável:
+* **Barramento 1 (5V):** Restrito exclusivamente ao aquecedor cerâmico do sensor de gás MQ-135.
+* **Barramentos 2, 3 e 4 (3.3V):** Tensão de operação de toda a lógica do circuito, sensores e ESP32, impedindo sobretensão nas portas analógicas/digitais do microcontrolador.
+* **Malha GND Comum:** Todos os trilhos azuis (`-`) interligados, garantindo o mesmo plano de referência (0V).
 
----
+```text
+   [FONTE MB102]
+  +-------------+
+  | [Jumper:5V] |---> [+] Barramento 1 (Vermelho): 5V EXCLUSIVO (MQ-135)
+  |             |---> [-] Barramento 1 (Azul)    : GND ---+
+  |  (Proto Sup)|                                         |
+  | [Jumper:3V3]|---> [+] Barramento 2 (Vermelho): 3.3V --|--+
+  +-------------+---> [-] Barramento 2 (Azul)    : GND ---|--|---+
+                                                          |  |   |
+                      [+] Barramento 3 (Vermelho): 3.3V <-|--+   | (Fio Preto:
+                      [-] Barramento 3 (Azul)    : GND <--+------|  Terra Comum)
+                                                                 |
+                      [+] Barramento 4 (Vermelho): 3.3V <--------+ (Fio Vermelho: 3.3V)
+                      [-] Barramento 4 (Azul)    : GND <---------+ (Fio Preto: GND)
+```
 
-### Etapa 2: Instalação e Configuração da Fonte MB102
-1. Encaixe a fonte MB102 na extremidade superior da protoboard, alinhando os pinos metálicos com os trilhos laterais de alimentação.
-2. **Configuração dos Jumpers de Tensão da MB102:**
-   * **Lado A (Trilho Superior):** Posicione o jumper seletor em **3.3V**. Este barramento alimentará o ESP32 e os sensores lógicos de 3.3V.
-   * **Lado B (Trilho Inferior):** Posicione o jumper seletor em **5.0V**. Este barramento fornecerá corrente estável ao elemento de aquecimento interno do sensor MQ-135.
-3. **Interligação de GND:** Use um jumper macho-macho para ligar o trilho azul/preto (GND) do Lado A ao trilho azul/preto (GND) do Lado B.
+### Instruções de Montagem:
+1. **Configuração dos Jumpers Amarelos da MB102:**
+   - No lado **superior** da fonte, posicione o jumper seletor em **5V**.
+   - No lado **inferior** da fonte, posicione o jumper seletor em **3.3V**.
+2. **Encaixe da Fonte:** Insira a fonte MB102 na extremidade esquerda da **Protoboard Superior** (colunas `1` a `12`), alinhando os 4 pinos inferiores diretamente nos Barramentos 1 e 2.
+3. **Unificação dos Terras (`GND`):** Com fios pretos, conecte:
+   - Linha azul (`-`) do Barramento 1 à linha azul (`-`) do Barramento 2.
+   - Linha azul (`-`) do Barramento 2 à linha azul (`-`) do Barramento 3.
+   - Linha azul (`-`) do Barramento 3 à linha azul (`-`) do Barramento 4.
+4. **Distribuição da Tensão de 3.3V:** Com fios vermelhos, conecte:
+   - Linha vermelha (`+`) do Barramento 2 à linha vermelha (`+`) do Barramento 3.
+   - Linha vermelha (`+`) do Barramento 3 à linha vermelha (`+`) do Barramento 4.
 
----
-
-### Etapa 3: Posicionamento do Microcontrolador ESP32
-1. Insira o ESP32 na Protoboard 1, montando-o transversalmente sobre a ranhura central divisória.
-2. Conecte o pino **GND** do ESP32 ao trilho negativo (GND comum).
-3. Se estiver alimentando o ESP32 pela fonte MB102 externa: conecte o trilho de **3.3V** ao pino `3V3` do ESP32 (ou o trilho de **5V** ao pino `VIN` do ESP32).
-
----
-
-### Etapa 4: Montagem do Sensor BMP280 (Pressão e Altitude)
-O BMP280 utiliza o barramento digital I2C:
-1. Conecte o pino **VCC** do BMP280 ao trilho **3.3V**.
-2. Conecte o pino **GND** do BMP280 ao trilho **GND**.
-3. Conecte o pino **SCL** ao **GPIO 22** do ESP32.
-4. Conecte o pino **SDA** ao **GPIO 21** do ESP32.
-5. Os pinos *CSB* e *SDO* devem permanecer desconectados (o que fixa o endereço I2C em `0x76`).
-
----
-
-### Etapa 5: Montagem do Sensor DHT22 (Temperatura e Umidade)
-1. Conecte o pino **VCC** do DHT22 ao trilho **3.3V**.
-2. Conecte o pino **GND** do DHT22 ao trilho **GND**.
-3. Conecte o pino **DATA / OUT** ao **GPIO 4** do ESP32.
-4. Se o DHT22 for o modelo avulso de 4 pinos (sem placa PCB embutida): insira um **resistor de 10 kΩ** entre o pino 1 (VCC) e o pino 2 (DATA) para atuar como *pull-up*. Caso seja o módulo em plaquinha azul de 3 pinos, o resistor já vem soldado internamente.
-
----
-
-### Etapa 6: Montagem do Sensor de Luminosidade (LDR)
-1. Insira o LDR e um **resistor de 10 kΩ** na protoboard:
-   * Conecte um dos terminais do LDR ao trilho **3.3V**.
-   * Conecte o segundo terminal do LDR à mesma linha de um dos terminais do resistor de 10 kΩ.
-   * Conecte o outro terminal do resistor de 10 kΩ ao trilho **GND**.
-2. Da junção intermediária entre o LDR e o resistor de 10 kΩ, puxe um jumper para o **GPIO 34** (ADC1) do ESP32.
+> [!CAUTION]
+> **Nunca interligue o Barramento 1 (5V) com os Barramentos 2, 3 ou 4 (3.3V)**. O contato acidental de 5V nas linhas de 3.3V queimará o ESP32 e o sensor BMP280.
 
 ---
 
-### Etapa 7: Montagem do Sensor de Chuva Montimport
-1. O sensor de chuva possui duas partes: a placa condutora de gotas e o módulo comparador LM393.
-2. Interligue os 2 pinos da placa de gotas aos 2 pinos de entrada do módulo comparador usando jumpers macho-fêmea.
-3. Conecte o pino **VCC** do módulo comparador ao trilho **3.3V**.
-4. Conecte o pino **GND** ao trilho **GND**.
-5. Conecte o pino **AO** (Saída Analógica) ao **GPIO 35** (ADC1) do ESP32. (O pino digital *DO* pode permanecer desconectado).
+## 🧠 Passo 2: Posicionamento do Microcontrolador ESP32
+
+Como a placa ESP32 NodeMCU-32S possui largura de 0.9 polegadas (22,8 mm), caso seja espetada no centro de uma única protoboard tradicional, ela cobrirá as colunas adjacentes, inviabilizando a conexão dos jumpers.
+
+Utilizaremos o **espaço divisório entre as duas protoboards**, garantindo **4 furos livres por pino** para conexão dos sinais e alimentação!
+
+```text
+Protoboard Superior (Parte Inferior - Fileiras 'a' a 'e'):
+Coluna:    1   2   3   4   5   6   7   8  ...  19
+Fileira e: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]  <-- 4 furos livres p/ jumpers!
+Fileira d: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]
+Fileira c: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]
+Fileira b: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]
+Fileira a: (P) (P) (P) (P) (P) (P) (P) (P) ... (P)  <-- Pinos Superiores do ESP32
+           =======================================
+           | [USB]      ESP32 DEVKIT             |  <-- Sobre o vão central
+           |          (NodeMCU 30 pinos)         |      (Barramentos 2 e 3)
+           =======================================
+Fileira j: (P) (P) (P) (P) (P) (P) (P) (P) ... (P)  <-- Pinos Inferiores do ESP32
+Fileira i: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]
+Fileira h: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]
+Fileira g: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]
+Fileira f: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]  <-- 4 furos livres p/ jumpers!
+Protoboard Inferior (Parte Superior - Fileiras 'f' a 'j')
+```
+
+### Instruções de Montagem:
+1. **Posicionamento Físico:** Encaixe a fileira superior de pinos do ESP32 na fileira **`a`** da Protoboard Superior (colunas `1` a `15` ou `19`, dependendo do modelo de 30 ou 38 pinos), e a fileira inferior de pinos na fileira **`j`** da Protoboard Inferior.
+   *(Nota: Se as travas plásticas mantiverem os barramentos 2 e 3 no meio e a distância for excessiva, desencaixe uma das réguas plásticas centrais ou use a Protoboard Inferior com o ESP32 deslocado um furo para cima).*
+2. **Alimentação e Aterramento do ESP32:**
+   - **GND:** Puxe um jumper preto do pino `GND` do ESP32 para a linha azul (`-`) do **Barramento 4 (GND)**.
+   - **3V3:** Puxe um jumper vermelho do pino `3V3` do ESP32 para a linha vermelha (`+`) do **Barramento 4 (3.3V)**. *(Durante o desenvolvimento, se a alimentação vier pelo cabo USB do PC, o pino 3V3 alimentará o circuito; quando na bancada autônoma, a MB102 alimentará o circuito).*
 
 ---
 
-### Etapa 8: Montagem do Sensor MQ-135 e Divisor Resistivo de Proteção
-O sensor MQ-135 necessita de 5V para o aquecedor cerâmico, gerando um sinal de 0 a 5V que precisa ser atenuado:
-1. Conecte o pino **VCC** do MQ-135 ao trilho **5.0V** da fonte MB102.
-2. Conecte o pino **GND** ao trilho **GND**.
-3. Da saída **AO** do sensor, conecte a um resistor $R_1$ de **1 kΩ**.
-4. Conecte a outra ponta do resistor $R_1$ a uma linha livre da protoboard.
-5. Nessa mesma linha livre, conecte um resistor $R_2$ de **2 kΩ**, cuja outra extremidade vai para o **GND**.
-6. Dessa mesma junção entre $R_1$ e $R_2$, puxe um jumper para o **GPIO 32** (ADC1) do ESP32.
+## 🌡️ Passo 3: Sensor de Temperatura e Umidade (DHT22 / AM2302)
+
+O módulo DHT22 em plaquinha PCB preta possui 3 pinos serigrafados (`+`, `OUT`/`DAT`, `-`), integrando internamente o resistor de *pull-up* necessário para a linha de comunicação One-Wire.
+
+```text
+Protoboard Inferior (Colunas 25, 26, 27):
+            +-----------+
+            |   DHT22   |
+            |  (Branco) |
+            +-----------+
+              |   |   |    <-- Pinos inseridos na Fileira 'e' (Colunas 25, 26, 27)
+Coluna:      25  26  27
+Pino:        [+] [OUT][-]
+              |    |   |
+              |    |   +-----> (Fio Preto)    Ligar no [-] Barramento 4 (GND)
+              |    +---------> (Fio Amarelo)  Ligar no pino [GPIO 4] do ESP32
+              +--------------> (Fio Vermelho) Ligar no [+] Barramento 4 (3.3V)
+```
+
+### Instruções de Conexão:
+1. Espete os 3 pinos do DHT22 na **Protoboard Inferior**, fileira **`e`**, ocupando as colunas **`25`**, **`26`** e **`27`**.
+2. Conecte os fios nas colunas correspondentes (fileiras `a` a `d`):
+   - **Coluna 25 (`+` / VCC):** Jumper vermelho para o **Barramento 4 (`+` 3.3V)**.
+   - **Coluna 26 (`OUT` / DATA):** Jumper amarelo diretamente para o **GPIO 4** do ESP32.
+   - **Coluna 27 (`-` / GND):** Jumper preto para o **Barramento 4 (`-` GND)**.
 
 ---
 
-## 3. Checklist de Validação Pré-Energização
+## 🧭 Passo 4: Sensor de Pressão Atmosférica e Altitude (BMP280)
 
-Antes de plugar a fonte de energia ou o cabo USB:
-* [ ] Os trilhos de 3.3V e 5.0V estão estritamente separados na fonte MB102?
-* [ ] O GND de todos os sensores, fonte e ESP32 estão em comum?
-* [ ] O pino de saída do MQ-135 está passando pelo divisor 1kΩ / 2kΩ antes de chegar ao pino 32?
-* [ ] Nenhum jumper de alimentação está conectado em curto entre trilho positivo e negativo?
-* [ ] Com um multímetro na escala de continuidade/diodo, verifique ausência de curto entre VCC e GND.
+O sensor Bosch BMP280 (módulo roxo `GY-BMP280-3.3`) comunica-se via barramento **I2C**, oferecendo alta precisão barométrica para cálculo de pressão e altitude.
+
+> [!CAUTION]
+> **PERIGO DE QUEIMA:** O BMP280 suporta no máximo 3.6V. Conecte sua alimentação impreterivelmente na malha de **3.3V**.
+
+```text
+Protoboard Inferior (Colunas 35 a 40):
+         +-------------------------+
+         |      GY-BMP280-3.3      |
+         |  VCC GND SCL SDA CSB SDO|
+         +-------------------------+
+             |   |   |   |   |   |   <-- Pinos inseridos na Fileira 'e' (Colunas 35 a 40)
+Coluna:     35  36  37  38  39  40
+             |   |   |   |       |
+             |   |   |   |       +--> (Fio Preto)    Ligar no [-] Barramento 4 (GND) -> Fixa I2C em 0x76
+             |   |   |   +----------> (Fio Azul)     Ligar no [GPIO 21 (SDA)] do ESP32
+             |   |   +--------------> (Fio Verde)    Ligar no [GPIO 22 (SCL)] do ESP32
+             |   +------------------> (Fio Preto)    Ligar no [-] Barramento 4 (GND)
+             +----------------------> (Fio Vermelho) Ligar no [+] Barramento 4 (3.3V)
+```
+
+### Instruções de Conexão:
+1. Insira os 6 pinos do BMP280 na **Protoboard Inferior**, fileira **`e`**, colunas **`35` a `40`**.
+2. Faça as ligações nas fileiras livres (`a` a `d`):
+   - **Coluna 35 (`VCC`):** Jumper vermelho no **Barramento 4 (`+` 3.3V)**.
+   - **Coluna 36 (`GND`):** Jumper preto no **Barramento 4 (`-` GND)**.
+   - **Coluna 37 (`SCL`):** Jumper verde no pino **GPIO 22** (I2C SCL) do ESP32.
+   - **Coluna 38 (`SDA`):** Jumper azul no pino **GPIO 21** (I2C SDA) do ESP32.
+   - **Coluna 39 (`CSB`):** Deixe desconectado (modo I2C habilitado por padrão).
+   - **Coluna 40 (`SDO`):** Jumper preto para o **Barramento 4 (`-` GND)**. Essa ligação força o bit menos significativo de endereço para 0, garantindo o endereço I2C fixo em **`0x76`**.
+
+---
+
+## ☀️ Passo 5: Sensor de Luminosidade (Módulo LDR Azul)
+
+O módulo fotossensível com comparador integrado possui 4 pinos (`AO`, `DO`, `GND`, `VCC`). Para medição contínua e analógica da radiação luminosa, utilizaremos a saída `AO` conectada ao canal **ADC1** do ESP32.
+
+```text
+Protoboard Superior (Colunas 25 a 28):
+         +-------------------+
+         |  MÓDULO LDR AZUL  |
+         |  AO  DO  GND  VCC |
+         +-------------------+
+            |   |    |    |    <-- Pinos inseridos na Fileira 'f' (Colunas 25 a 28)
+Coluna:    25  26   27   28
+            |        |    |
+            |        |    +--> (Fio Vermelho) Ligar no [+] Barramento 2 (3.3V)
+            |        +-------> (Fio Preto)    Ligar no [-] Barramento 2 (GND)
+            +----------------> (Fio Branco)   Ligar no [GPIO 34 (ADC1)] do ESP32
+```
+
+### Instruções de Conexão:
+1. Insira os 4 pinos do módulo LDR na **Protoboard Superior**, fileira **`f`**, ocupando as colunas **`25` a `28`**.
+2. Conecte os jumpers nos furos das fileiras `g` a `j`:
+   - **Coluna 28 (`VCC`):** Jumper vermelho no **Barramento 2 (`+` 3.3V)**.
+   - **Coluna 27 (`GND`):** Jumper preto no **Barramento 2 (`-` GND)**.
+   - **Coluna 26 (`DO`):** Deixar desconectado (saída digital do trimpot não necessária).
+   - **Coluna 25 (`AO`):** Jumper branco diretamente no **GPIO 34** do ESP32 (*ADC1_CH6*).
+
+---
+
+## 🌧️ Passo 6: Pluviômetro / Sensor de Chuva (DSK MH-RD)
+
+O sistema de medição pluviométrica opera com duas partes acopladas: a placa sensora de gotas com trilhas niqueladas expostas e o módulo comparador azul.
+
+```text
+  [Placa Coletora DSK MH-RD]
+        |          |
+        +----+ +---+  (2 Jumpers Fêmea-Fêmea, sem polaridade fixa)
+             | |
+         +---v-v-------------+
+         | MÓDULO CHUVA AZUL |
+         |  VCC  GND  DO  AO |
+         +-------------------+
+             |    |   |   |    <-- Pinos inseridos na Fileira 'f' (Colunas 35 a 38)
+Coluna:     35   36  37  38
+             |    |       |
+             |    |       +--> (Fio Laranja)  Ligar no [GPIO 35 (ADC1)] do ESP32
+             |    +----------> (Fio Preto)    Ligar no [-] Barramento 2 (GND)
+             +---------------> (Fio Vermelho) Ligar no [+] Barramento 2 (3.3V)
+```
+
+### Instruções de Conexão:
+1. Insira os 4 pinos do módulo comparador na **Protoboard Superior**, fileira **`f`**, colunas **`35` a `38`**.
+2. Conecte os jumpers nas fileiras `g` a `j`:
+   - **Coluna 35 (`VCC`):** Jumper vermelho no **Barramento 2 (`+` 3.3V)**.
+   - **Coluna 36 (`GND`):** Jumper preto no **Barramento 2 (`-` GND)**.
+   - **Coluna 37 (`DO`):** Deixar desconectado (ou ligar no GPIO 27 para detecção binária de chuva imediata).
+   - **Coluna 38 (`AO`):** Jumper laranja diretamente no **GPIO 35** do ESP32 (*ADC1_CH7*).
+3. Conecte os **2 pinos superiores** do módulo azul aos **2 terminais da placa coletora DSK MH-RD** utilizando 2 cabos fêmea-fêmea (não há polaridade positiva ou negativa entre essas duas vias).
+
+---
+
+## 💨 Passo 7: Sensor de Gases e Qualidade do Ar (MQ-135)
+
+O sensor eletroquímico MQ-135 possui um filamento resistivo interno de $\text{SnO}_2$ (dióxido de estanho) que exige **5.0V** contínuos para manter sua temperatura operacional de aquecimento (pre-heating).
+
+```text
+Protoboard Superior (Colunas 48 a 51):
+         +-------------------+
+         |  MQ-135 (Prateado)|
+         |  VCC  GND  DO  AO |
+         +-------------------+
+             |    |   |   |    <-- Pinos inseridos na Fileira 'f' (Colunas 48 a 51)
+Coluna:     48   49  50  51
+             |    |       |
+             |    |       +--> (Fio Roxo)     Ligar no [GPIO 32 (ADC1)] do ESP32 (*)
+             |    +----------> (Fio Preto)    Ligar no [-] Barramento 1 (GND)
+             +---------------> (Fio Vermelho) Ligar no [+] Barramento 1 (5V EXCLUSIVO)
+```
+
+### Instruções de Conexão:
+1. Verifique a serigrafia do módulo azul `Flying-Fish` do MQ-135 para identificar os 4 pinos (`VCC`, `GND`, `DO`, `AO`).
+2. Insira os 4 pinos na **Protoboard Superior**, fileira **`f`**, colunas **`48` a `51`**.
+3. Conecte os fios nas fileiras `g` a `j`:
+   - **Coluna 48 (`VCC`):** Jumper vermelho ligado diretamente na linha vermelha (`+`) do **Barramento 1 (5V)**.
+   - **Coluna 49 (`GND`):** Jumper preto ligado na linha azul (`-`) do **Barramento 1 (GND)**.
+   - **Coluna 50 (`DO`):** Deixar desconectado.
+   - **Coluna 51 (`AO`):** Jumper roxo para o **GPIO 32** do ESP32 (*ADC1_CH4*).
+
+> [!TIP]
+> **Recomendação de Engenharia com Divisor de Tensão ($1\text{ k}\Omega / 2\text{ k}\Omega$):**  
+> Como o MQ-135 é alimentado em 5V, sua saída analógica `AO` pode atingir picos próximos de 5V sob alta concentração de fumaça/gases. Para total proteção do conversor analógico do ESP32, conforme demonstrado em [Cálculo dos Divisores de Tensão](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/calculo_divisores_tensao.md):  
+> Intercale um resistor $R_1 = 1\text{ k}\Omega$ entre o pino `AO` e um nó livre da protoboard, e um resistor $R_2 = 2\text{ k}\Omega$ desse nó para o GND. O sinal atenuado com fator $\frac{2}{3}$ ($5\text{V} \rightarrow 3.33\text{V}$) é então conectado com segurança absoluta ao **GPIO 32**.
+
+---
+
+## 📊 8. Tabela Resumo Consolidada de Fiação e Cores
+
+| Componente | Pino do Sensor | Barramento / Posição | Porta no ESP32 | Cor do Jumper Sugerida | Função Elétrica |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Fonte MB102** | Entrada Sup. / Inf. | Colunas 1 a 12 | — | Pinos MB102 | Fornece 5V (Topo) e 3.3V (Base) |
+| **Ponte GND** | Trilhos Azuis | Barr. 1, 2, 3 e 4 | — | Preto | Malha de referência 0V unificada |
+| **Ponte 3.3V** | Trilhos Vermelhos | Barr. 2 para 3 e 4 | — | Vermelho | Distribuição lógica segura 3.3V |
+| **ESP32** | `GND` / `3V3` | Colunas 1 a 15 | Barr. 4 (-) / Barr. 4 (+) | Preto / Vermelho | Alimentação da CPU |
+| **DHT22** | `VCC` / `OUT` / `GND` | Colunas 25, 26, 27 | Barr. 4 (+) / **GPIO 4** / Barr. 4 (-) | Vermelho / Amarelo / Preto | Temperatura e Umidade (One-Wire) |
+| **BMP280** | `VCC` / `GND` | Colunas 35 e 36 | Barr. 4 (+) / Barr. 4 (-) | Vermelho / Preto | Alimentação (3.3V máx!) |
+| | `SCL` / `SDA` | Colunas 37 e 38 | **GPIO 22** / **GPIO 21** | Verde / Azul | Barramento I2C Padrão |
+| | `SDO` | Coluna 40 | Barr. 4 (-) | Preto | Fixa endereço I2C em `0x76` |
+| **Módulo LDR** | `VCC` / `GND` | Colunas 28 e 27 | Barr. 2 (+) / Barr. 2 (-) | Vermelho / Preto | Alimentação 3.3V |
+| | `AO` | Coluna 25 | **GPIO 34** (ADC1) | Branco | Sinal analógico de luz |
+| **Sensor Chuva** | `VCC` / `GND` | Colunas 35 e 36 | Barr. 2 (+) / Barr. 2 (-) | Vermelho / Preto | Alimentação 3.3V |
+| | `AO` | Coluna 38 | **GPIO 35** (ADC1) | Laranja | Sinal analógico de precipitação |
+| | 2 Vias Placa | Terminais Sup. | Placa DSK MH-RD | 2x Jumpers Fêmea-Fêmea | Detecção de gotas condutivas |
+| **MQ-135** | `VCC` / `GND` | Colunas 48 e 49 | **Barr. 1 (+)** / Barr. 1 (-) | Vermelho / Preto | 5.0V exclusivo p/ aquecedor |
+| | `AO` | Coluna 51 | **GPIO 32** (ADC1) | Roxo | Sinal analógico de gases |
+
+---
+
+## ✅ 9. Checklist de Segurança Pré-Energização (30 Segundos)
+
+Antes de plugar a fonte MB102 na tomada ou conectar o cabo micro-USB ao notebook, realize esta inspeção visual obrigatória:
+
+- [ ] **Alimentação do BMP280:** O fio vermelho do sensor roxo vai para o Barramento 4 (3.3V) e **jamais** para o Barramento 1 (5V)?
+- [ ] **Desobstrução do ESP32:** O ESP32 possui furos livres em ambas as laterais para conexões sem perigo de curto entre fileiras opostas?
+- [ ] **Pontes Centrais da Coluna 30:** Seus jumpers de continuidade entre a metade esquerda e direita dos barramentos estão instalados?
+- [ ] **GND Comum Unificado:** Todos os trilhos azuis (`-`) dos Barramentos 1, 2, 3 e 4 estão conectados com fios pretos de interligação?
+- [ ] **Exclusividade do Barramento 1:** O pino `VCC` do MQ-135 é o **único** componente conectado ao Barramento 1 de 5V?
+- [ ] **Pinos Analógicos Confinados ao ADC1:** As três entradas analógicas estão conectadas exclusivamente nos GPIOs 32, 34 e 35 (imunes ao rádio Wi-Fi)?
+
+Uma vez aprovado o checklist, o circuito pode ser energizado com total segurança para os primeiros testes de telemetria!

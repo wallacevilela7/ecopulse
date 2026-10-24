@@ -6,9 +6,21 @@ Documentos complementares de engenharia:
 * [Tabela de Pinout Completa](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/pinout_conexoes.md)
 * [Cálculo Matemático dos Divisores de Tensão](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/calculo_divisores_tensao.md)
 * [Lista de Materiais (BOM)](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/README.md)
-* [Foto do Esquemático de Referência](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/assets/protoboard_esquematico.jpg)
+* [Esquemático Ilustrado com Fonte MB102 (PNG)](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/assets/protoboard_esquematico_mb102.png)
+* [Esquemático Vetorial com Fonte MB102 (SVG)](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/assets/protoboard_esquematico_mb102.svg)
 
 ---
+
+## 🖼️ Visão Geral do Circuito com Fonte MB102 Integrada
+
+![Esquemático Completo com Fonte MB102](assets/protoboard_esquematico_mb102.png)
+
+> [!IMPORTANT]
+> **Objetivo Estratégico da Fonte MB102 (Controle Seletivo de Tensão):**  
+> A fonte MB102 tem como propósito fundamental o **controle independente de voltagem (5V vs 3.3V)** para atender aos diferentes requisitos de cada sensor:
+> 1. **5.0V Regulado (Barramento 1 - Superior):** Alimenta o filamento resistivo de aquecimento do sensor de gases **MQ-135** (que exige 5V contínuos para operar).
+> 2. **3.3V Regulado (Barramentos 2, 3 e 4):** Alimenta a lógica central do microcontrolador **ESP32** e os sensores digitais/analógicos sensíveis (**BMP280**, DHT22, LDR e Chuva), que queimariam sob 5V.
+> 3. **GND Comum Unificado:** Todos os trilhos negativos estão interligados, mantendo um referencial elétrico único de 0V para leituras ADC precisas.
 
 ## 🛠️ 1. Visão Geral das Coordenadas da Dupla Protoboard
 

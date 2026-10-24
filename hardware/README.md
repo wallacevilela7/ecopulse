@@ -8,9 +8,9 @@ Este diretório centraliza todas as especificações de engenharia eletrônica, 
 
 A estação adota o microcontrolador **ESP32 NodeMCU-32S** como nó de borda inteligente, responsável pela leitura periódica das grandezas físicas, conversão analógico-digital, cálculo preliminar de parâmetros e transmissão via Wi-Fi.
 
-![Esquemático na Protoboard](assets/protoboard_esquematico.jpg)
+![Esquemático na Protoboard com Fonte MB102](assets/protoboard_esquematico_mb102.png)
 
----
+> **Controle Seletivo de Tensão com Fonte MB102:** A fonte MB102 conectada à esquerda da matriz de protoboards gerencia de forma independente dois barramentos de tensão: **5.0V exclusivo** no barramento superior (para o filamento de aquecimento do MQ-135) e **3.3V regulado** nos demais barramentos (para o ESP32 e sensores lógicos como o BMP280, que queimam sob 5V), unificando a referência de terra (**GND Comum**).
 
 ## 2. Lista de Materiais (Bill of Materials - BOM)
 

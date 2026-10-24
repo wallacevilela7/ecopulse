@@ -3,7 +3,7 @@ import base64
 import subprocess
 
 BASE_DIR = "/home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware"
-IMG_PATH = os.path.join(BASE_DIR, "assets", "protoboard_esquematico.jpg")
+IMG_PATH = os.path.join(BASE_DIR, "assets", "protoboard_esquematico_mb102.png")
 HTML_OUT = os.path.join(BASE_DIR, "manual_montagem_ecopulse.html")
 PDF_OUT = os.path.join(BASE_DIR, "manual_montagem_ecopulse.pdf")
 
@@ -500,12 +500,16 @@ html_content = """<!DOCTYPE html>
   </table>
 
   <div class="img-container">
-    <img src="data:image/jpeg;base64,__IMG_B64__" alt="Esquemático Protoboard">
-    <div class="img-caption">Figura 1.1: Visão superior da montagem física na bancada de ensaios com dupla protoboard acoplada.</div>
+    <img src="data:image/png;base64,__IMG_B64__" alt="Esquemático Protoboard com MB102">
+    <div class="img-caption">Figura 1.1: Visão esquemática completa da montagem em bancada com <strong>Fonte MB102 integrada</strong> na extremidade esquerda da matriz de protoboards, demonstrando o controle de tensão individual (5V e 3.3V).</div>
   </div>
 
-  <div class="callout callout-info">
-    <strong>Arquitetura das Linhas de Conversão Analógica (ADC):</strong> Todos os sensores analógicos (LDR, Chuva e MQ-135) foram obrigatoriamente alocados no <strong>ADC1 do ESP32</strong> (canais GPIO 32, 34 e 35). Essa decisão de engenharia impede travamentos ou ruídos causados pelo rádio Wi-Fi, o qual compartilha hardware com o ADC2.
+  <div class="callout callout-tip" style="margin-top: 4px;">
+    <strong>Papel Estratégico da Fonte MB102 (Controle Seletivo de Tensão):</strong> O objetivo central da fonte MB102 é fornecer <em>regulação independente de voltagem por barramento</em> para atender às demandas divergentes dos sensores. Enquanto o sensor de gases MQ-135 exige <strong>5.0V</strong> estáveis para seu elemento de aquecimento interno de SnO2, o microcontrolador ESP32 e o sensor barométrico BMP280 operam exclusivamente em nível lógico de <strong>3.3V</strong> (queimam irreversivelmente sob 5V). A MB102 resolve essa convivência através de seus jumpers seletores amarelos (Superior em 5V e Inferior em 3.3V), garantindo que cada componente opere em sua tensão ótima com plano de terra (GND) unificado.
+  </div>
+
+  <div class="callout callout-info" style="margin-top: 4px;">
+    <strong>Canais Analógicos no ADC1:</strong> Todos os transdutores analógicos (LDR, Chuva e MQ-135) foram obrigatoriamente alocados no <strong>ADC1 do ESP32</strong> (canais GPIO 32, 34 e 35), eliminando colisões de hardware com o rádio Wi-Fi.
   </div>
 
   <div class="page-footer">

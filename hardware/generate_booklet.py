@@ -19,7 +19,7 @@ html_content = """<!DOCTYPE html>
 <style>
   @page {
     size: A4 portrait;
-    margin: 12mm 14mm 12mm 14mm;
+    margin: 11mm 13mm 11mm 13mm;
   }
 
   * {
@@ -32,8 +32,8 @@ html_content = """<!DOCTYPE html>
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: #1e293b;
     background-color: #ffffff;
-    font-size: 9.3pt;
-    line-height: 1.42;
+    font-size: 9.0pt;
+    line-height: 1.38;
   }
 
   /* Page Break Utilities */
@@ -41,7 +41,7 @@ html_content = """<!DOCTYPE html>
     page-break-after: always;
     height: 100%;
     position: relative;
-    padding-bottom: 26px;
+    padding-bottom: 24px;
   }
 
   .page:last-child {
@@ -111,18 +111,18 @@ html_content = """<!DOCTYPE html>
   }
 
   .cover-title {
-    font-size: 26pt;
+    font-size: 25pt;
     font-weight: 800;
-    line-height: 1.15;
+    line-height: 1.18;
     color: #ffffff;
     margin-bottom: 12px;
   }
 
   .cover-subtitle {
-    font-size: 13pt;
+    font-size: 12.5pt;
     color: #cbd5e1;
     font-weight: 400;
-    max-width: 90%;
+    max-width: 92%;
     line-height: 1.4;
   }
 
@@ -150,7 +150,7 @@ html_content = """<!DOCTYPE html>
   }
 
   .spec-value {
-    font-size: 10pt;
+    font-size: 9.8pt;
     font-weight: 700;
     color: #f8fafc;
     margin-top: 2px;
@@ -168,40 +168,40 @@ html_content = """<!DOCTYPE html>
 
   /* Typography and Layout */
   h1.section-title {
-    font-size: 14pt;
+    font-size: 13.5pt;
     font-weight: 800;
     color: #0f172a;
     border-left: 5px solid #059669;
     padding-left: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
     gap: 8px;
   }
 
   h2.step-title {
-    font-size: 11.5pt;
+    font-size: 11pt;
     font-weight: 700;
     color: #0f172a;
-    margin-top: 8px;
-    margin-bottom: 5px;
+    margin-top: 7px;
+    margin-bottom: 4px;
     display: flex;
     align-items: center;
     gap: 6px;
   }
 
   p {
-    margin-bottom: 6px;
+    margin-bottom: 5px;
     color: #334155;
   }
 
   /* Callout Boxes */
   .callout {
     border-radius: 6px;
-    padding: 7px 11px;
-    margin: 6px 0;
-    font-size: 8.3pt;
-    line-height: 1.38;
+    padding: 6px 10px;
+    margin: 5px 0;
+    font-size: 8.1pt;
+    line-height: 1.35;
     border-left: 4px solid;
   }
 
@@ -234,12 +234,12 @@ html_content = """<!DOCTYPE html>
     background-color: #0f172a;
     color: #38bdf8;
     font-family: "Consolas", "Fira Code", monospace;
-    font-size: 7.0pt;
-    line-height: 1.22;
-    padding: 7px 9px;
+    font-size: 6.8pt;
+    line-height: 1.20;
+    padding: 6px 8px;
     border-radius: 6px;
     border: 1px solid #1e293b;
-    margin: 5px 0;
+    margin: 4px 0;
     overflow: hidden;
     white-space: pre;
   }
@@ -247,14 +247,14 @@ html_content = """<!DOCTYPE html>
   /* Lists */
   ul.step-instructions {
     list-style: none;
-    margin: 5px 0;
+    margin: 4px 0;
   }
 
   ul.step-instructions li {
     position: relative;
-    padding-left: 16px;
-    margin-bottom: 3.5px;
-    font-size: 8.6pt;
+    padding-left: 15px;
+    margin-bottom: 3px;
+    font-size: 8.3pt;
     color: #1e293b;
   }
 
@@ -262,7 +262,7 @@ html_content = """<!DOCTYPE html>
     content: "•";
     color: #059669;
     font-weight: bold;
-    font-size: 11pt;
+    font-size: 10pt;
     position: absolute;
     left: 4px;
     top: -2px;
@@ -274,7 +274,7 @@ html_content = """<!DOCTYPE html>
     padding: 1px 5px;
     border-radius: 4px;
     font-family: monospace;
-    font-size: 7.8pt;
+    font-size: 7.6pt;
     font-weight: 700;
   }
   .badge-gpio { background: #e0e7ff; color: #3730a3; }
@@ -287,23 +287,23 @@ html_content = """<!DOCTYPE html>
   table.tech-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 8.0pt;
-    margin: 6px 0;
+    font-size: 7.8pt;
+    margin: 5px 0;
   }
 
   table.tech-table th {
     background-color: #0f172a;
     color: #f8fafc;
     text-align: left;
-    padding: 5px 7px;
+    padding: 4px 6px;
     font-weight: 600;
-    font-size: 7.8pt;
+    font-size: 7.6pt;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
   table.tech-table td {
-    padding: 4.5px 7px;
+    padding: 3.8px 6px;
     border-bottom: 1px solid #e2e8f0;
     color: #334155;
   }
@@ -319,10 +319,10 @@ html_content = """<!DOCTYPE html>
     gap: 8px;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
-    padding: 5px 8px;
+    padding: 4.5px 7px;
     border-radius: 5px;
-    margin-bottom: 5px;
-    font-size: 8.3pt;
+    margin-bottom: 4px;
+    font-size: 8.1pt;
   }
 
   .checkbox-box {
@@ -338,24 +338,24 @@ html_content = """<!DOCTYPE html>
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 7px;
-    padding: 8px 10px;
+    padding: 7px 9px;
   }
 
   .img-container {
     text-align: center;
-    margin: 8px 0;
+    margin: 6px 0;
   }
 
   .img-container img {
     max-width: 95%;
-    max-height: 230px;
+    max-height: 220px;
     border-radius: 8px;
     border: 1px solid #cbd5e1;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
 
   .img-caption {
-    font-size: 7.3pt;
+    font-size: 7.2pt;
     color: #64748b;
     margin-top: 3px;
     font-style: italic;
@@ -376,7 +376,7 @@ html_content = """<!DOCTYPE html>
       <div class="cover-badge">PIM II & Projeto Dirigido II • Smart Campus IoT</div>
       <h1 class="cover-title">Manual Ilustrado<br>de Montagem de Bancada</h1>
       <p class="cover-subtitle">
-        Guia passo a passo de engenharia física para montagem da Estação Meteorológica EcoPulse em matriz de dupla protoboard (830 pontos), com microcontrolador ESP32 e 5 transdutores ambientais.
+        Guia passo a passo de engenharia física para montagem da Estação Meteorológica EcoPulse em matriz de dupla protoboard (830 pontos acopladas pelas travas laterais), fonte MB102 bi-volt, microcontrolador ESP32 no vão direito e malha padronizada de jumpers rígidos em U.
       </p>
 
       <div class="cover-specs">
@@ -438,14 +438,14 @@ html_content = """<!DOCTYPE html>
         <td>Módulo Fonte Protoboard MB102</td>
         <td>1</td>
         <td><span class="badge-pin badge-5v">5.0V</span> / <span class="badge-pin badge-3v3">3.3V</span></td>
-        <td>Isolamento galvânico e barramentos duplos de alimentação</td>
+        <td>Controle seletivo bi-volt e barramentos duplos de alimentação</td>
       </tr>
       <tr>
         <td><strong>03</strong></td>
-        <td>Protoboard Transparente/Branca 830 Pts</td>
+        <td>Protoboard 830 Pts (com Travas)</td>
         <td>2</td>
         <td>—</td>
-        <td>Acopladas horizontalmente para matriz física de conexões</td>
+        <td>Acopladas horizontalmente pelas travas laterais (área central livre)</td>
       </tr>
       <tr>
         <td><strong>04</strong></td>
@@ -480,7 +480,7 @@ html_content = """<!DOCTYPE html>
         <td>Sensor MQ-135 Flying-Fish (Ar/Gases)</td>
         <td>1</td>
         <td><span class="badge-pin badge-5v">5.0V (Aquecedor)</span></td>
-        <td>Detecção de NH3, NOx, álcool, benzeno, fumaça e CO2</td>
+        <td>Detecção de NH3, NOx, álcool, fumaça e CO2 (filamento SnO2)</td>
       </tr>
       <tr>
         <td><strong>09</strong></td>
@@ -491,25 +491,21 @@ html_content = """<!DOCTYPE html>
       </tr>
       <tr>
         <td><strong>10</strong></td>
-        <td>Jumpers Macho-Macho & Fêmea-Fêmea</td>
-        <td>~35</td>
+        <td>Kit de Jumpers Rígidos em U & Flexíveis</td>
+        <td>1 kit</td>
         <td>—</td>
-        <td>Fiação estruturada codificada por cores</td>
+        <td>Fiação estruturada em U (2 a 15 furos) e pontes da coluna 30</td>
       </tr>
     </tbody>
   </table>
 
   <div class="img-container">
-    <img src="data:image/png;base64,__IMG_B64__" alt="Esquemático Protoboard com MB102">
-    <div class="img-caption">Figura 1.1: Visão esquemática completa da montagem em bancada com <strong>Fonte MB102 integrada</strong> na extremidade esquerda da matriz de protoboards, demonstrando o controle de tensão individual (5V e 3.3V).</div>
+    <img src="data:image/png;base64,__IMG_B64__" alt="Esquemático Protoboard">
+    <div class="img-caption">Figura 1.1: Visão superior da montagem física na bancada de ensaios com dupla protoboard acoplada (MB102 na esquerda, ESP32 no vão direito).</div>
   </div>
 
-  <div class="callout callout-tip" style="margin-top: 4px;">
-    <strong>Papel Estratégico da Fonte MB102 (Controle Seletivo de Tensão):</strong> O objetivo central da fonte MB102 é fornecer <em>regulação independente de voltagem por barramento</em> para atender às demandas divergentes dos sensores. Enquanto o sensor de gases MQ-135 exige <strong>5.0V</strong> estáveis para seu elemento de aquecimento interno de SnO2, o microcontrolador ESP32 e o sensor barométrico BMP280 operam exclusivamente em nível lógico de <strong>3.3V</strong> (queimam irreversivelmente sob 5V). A MB102 resolve essa convivência através de seus jumpers seletores amarelos (Superior em 5V e Inferior em 3.3V), garantindo que cada componente opere em sua tensão ótima com plano de terra (GND) unificado.
-  </div>
-
-  <div class="callout callout-info" style="margin-top: 4px;">
-    <strong>Canais Analógicos no ADC1:</strong> Todos os transdutores analógicos (LDR, Chuva e MQ-135) foram obrigatoriamente alocados no <strong>ADC1 do ESP32</strong> (canais GPIO 32, 34 e 35), eliminando colisões de hardware com o rádio Wi-Fi.
+  <div class="callout callout-info">
+    <strong>Arquitetura das Linhas de Conversão Analógica (ADC1):</strong> Todos os sensores analógicos (LDR, Chuva e MQ-135) foram obrigatoriamente alocados no <strong>ADC1 do ESP32</strong> (canais GPIO 32, 34 e 35). Essa decisão de engenharia impede travamentos ou ruídos causados pelo rádio Wi-Fi, o qual compartilha hardware com o ADC2.
   </div>
 
   <div class="page-footer">
@@ -522,35 +518,38 @@ html_content = """<!DOCTYPE html>
 <div class="page">
   <h1 class="section-title">🗺️ 2. Topografia das Coordenadas da Dupla Protoboard</h1>
   <p>
-    Para evitar qualquer erro na inserção de componentes e jumpers, considere as duas protoboards de 830 pontos acopladas horizontalmente na sua bancada (Superior e Inferior):
+    Para evitar qualquer erro na inserção de componentes e jumpers, considere as duas protoboards de 830 pontos unidas pelas travas plásticas laterais na sua bancada (Superior e Inferior), conforme a foto do protótipo:
   </p>
 
   <pre class="ascii-box">
-+-----------------------------------------------------------------------------------------+
-| [+] Barramento 1 (Vermelho) - Configurar Jumper MB102 em 5V (Aquecedor MQ-135)          |
-| [-] Barramento 1 (Azul)     - GND Comum                                                 |
-+-----------------------------------------------------------------------------------------+
-|  Protoboard Superior: Fileiras 'f' a 'j' | Colunas 1 a 63                               |
-|  ==================== Canal Central (Divisória) ====================                    |
-|  Protoboard Superior: Fileiras 'a' a 'e' | Colunas 1 a 63                               |
-+-----------------------------------------------------------------------------------------+
-| [+] Barramento 2 (Vermelho) - Configurar Jumper MB102 em 3.3V                           |
-| [-] Barramento 2 (Azul)     - GND Comum                                                 |
-+-----------------------------------------------------------------------------------------+
-| [+] Barramento 3 (Vermelho) - Ponte de 3.3V (Vindo do Barramento 2)                     |
-| [-] Barramento 3 (Azul)     - GND Comum                                                 |
-+-----------------------------------------------------------------------------------------+
-|  Protoboard Inferior: Fileiras 'f' a 'j' | Colunas 1 a 63                               |
-|  ==================== Canal Central (Divisória) ====================                    |
-|  Protoboard Inferior: Fileiras 'a' a 'e' | Colunas 1 a 63                               |
-+-----------------------------------------------------------------------------------------+
-| [+] Barramento 4 (Vermelho) - Ponte de 3.3V                                             |
-| [-] Barramento 4 (Azul)     - GND Comum                                                 |
-+-----------------------------------------------------------------------------------------+
+[FONTE MB102 - ESQUERDA]                                                    [ESP32 - DIREITA]
++-------------------------------------------------------------------------------------------+
+| [-] Linha Azul: GND Comum                                                                 |
+| [+] Linha Vermelha: BARRAMENTO 1 -> 5.0V EXCLUSIVO P/ MQ-135 (Jumper MB102 em 5V)         |
++-------------------------------------------------------------------------------------------+
+|  Protoboard Superior: Fileiras 'j' a 'f' | Colunas 1 a 63 (Área Livre p/ MQ, Chuva, LDR)  |
+|  ==================== Canal Central Divisório ====================                        |
+|  Protoboard Superior: Fileiras 'e' a 'b' (Livres) | Fileira 'a' (Pinos Sup. ESP32: 48-62) |
++-------------------------------------------------------------------------------------------+
+| [+] Linha Vermelha: BARRAMENTO 2 -> 3.3V SEGURO (Jumper MB102 em 3.3V)                    |
+| [-] Linha Azul: GND Comum                                                                 |
++===========================================================================================+
+| [== SUPORTEZINHO PLÁSTICO / TRAVAS LATERAIS ACOPLADAS ENTRE AS PROTOBOARDS ==]            |
++===========================================================================================+
+| [+] Linha Vermelha: BARRAMENTO 3 -> 3.3V (Ponte vinda do Barramento 2)                    |
+| [-] Linha Azul: GND Comum                                                                 |
++-------------------------------------------------------------------------------------------+
+|  Protoboard Inferior: Fileira 'j' (Pinos Inf. ESP32: 48-62) | Fileiras 'i' a 'f' (Livres)  |
+|  ==================== Canal Central Divisório ====================                        |
+|  Protoboard Inferior: Fileiras 'e' a 'a' | Colunas 1 a 63 (Área Livre p/ DHT22 e BMP280)  |
++-------------------------------------------------------------------------------------------+
+| [+] Linha Vermelha: BARRAMENTO 4 -> 3.3V (Alimentação BMP280 / DHT22)                     |
+| [-] Linha Azul: GND Comum                                                                 |
++-------------------------------------------------------------------------------------------+
   </pre>
 
   <div class="callout callout-warning">
-    <strong>Aviso Crítico (Interrupção na Coluna 30):</strong> Nas protoboards de 830 pontos, as trilhas de alimentação lateral possuem um corte interno entre as colunas 30 e 33. Coloque pequenos grampos jumpers unindo a metade esquerda à metade direita nas linhas vermelhas e azuis de todos os barramentos utilizados.
+    <strong>Aviso Crítico (Interrupção na Coluna 30):</strong> Nas protoboards de 830 pontos, as trilhas de alimentação lateral possuem um corte interno entre as colunas 30 e 33. Insira jumpers rígidos em U (vermelhos/laranjas de 3 a 5 furos) unindo a metade esquerda à direita em todos os barramentos utilizados. Sem essas pontes, a energia da MB102 não alcança o ESP32!
   </div>
 
   <h2 class="step-title">⚡ Passo 1: Fonte MB102 e Malha de Distribuição de Energia</h2>
@@ -561,24 +560,24 @@ html_content = """<!DOCTYPE html>
   <pre class="ascii-box">
    [FONTE MB102]
   +-------------+
-  | [Jumper:5V] |---> [+] Barramento 1 (Vermelho): 5V EXCLUSIVO (MQ-135)
-  |             |---> [-] Barramento 1 (Azul)    : GND ---+
-  |  (Proto Sup)|                                         |
-  | [Jumper:3V3]|---> [+] Barramento 2 (Vermelho): 3.3V --|--+
-  +-------------+---> [-] Barramento 2 (Azul)    : GND ---|--|---+
-                                                          |  |   |
-                      [+] Barramento 3 (Vermelho): 3.3V <-|--+   | (Fio Preto:
-                      [-] Barramento 3 (Azul)    : GND <--+------|  Terra Comum)
-                                                                 |
-                      [+] Barramento 4 (Vermelho): 3.3V <--------+ (Fio Vermelho: 3.3V)
-                      [-] Barramento 4 (Azul)    : GND <---------+ (Fio Preto: GND)
+  | [Jumper:5V] |---> [+] Barramento 1 (Vermelho): 5.0V EXCLUSIVO (MQ-135)
+  |             |---> [-] Barramento 1 (Azul)    : GND Comum ---+
+  |  (Proto Sup)|                                               |
+  | [Jumper:3V3]|---> [+] Barramento 2 (Vermelho): 3.3V --------|--+
+  +-------------+---> [-] Barramento 2 (Azul)    : GND Comum ---|--|---+
+                                                                |  |   |
+                      [+] Barramento 3 (Vermelho): 3.3V <-------|--+   | (Fios Pretos:
+                      [-] Barramento 3 (Azul)    : GND Comum <--+------|  GND Comum)
+                                                                       |
+                      [+] Barramento 4 (Vermelho): 3.3V <--------------+ (Fios Vermelhos: 3.3V)
+                      [-] Barramento 4 (Azul)    : GND Comum <---------+ (Fios Pretos: GND)
   </pre>
 
   <ul class="step-instructions">
-    <li><strong>Ajuste dos Jumpers da MB102:</strong> Posicione o jumper amarelo do lado <em>superior</em> em <strong>5V</strong> e o do lado <em>inferior</em> em <strong>3.3V</strong>.</li>
-    <li><strong>Fixação na Protoboard:</strong> Espete os 4 pinos inferiores da MB102 na extremidade esquerda da Protoboard Superior (colunas 1 a 12), encaixando nos Barramentos 1 e 2.</li>
-    <li><strong>Ponte de GND Comum (Fios Pretos):</strong> Interligue todos os trilhos azuis: Barramento 1 (-) com Barramento 2 (-), Barramento 2 (-) com Barramento 3 (-), e Barramento 3 (-) com Barramento 4 (-).</li>
-    <li><strong>Distribuição de 3.3V (Fios Vermelhos):</strong> Conecte a linha vermelha do Barramento 2 (+) ao Barramento 3 (+) e deste para o Barramento 4 (+). <em>Nunca conecte o Barramento 1 aos demais barramentos vermelhos!</em></li>
+    <li><strong>Ajuste dos Jumpers da MB102:</strong> Posicione o jumper amarelo superior em <strong>5V</strong> e o inferior em <strong>3.3V</strong>.</li>
+    <li><strong>Fixação na Protoboard:</strong> Espete os 4 pinos inferiores da MB102 na extremidade esquerda da Protoboard Superior (colunas 1 a 8), encaixando nos Barramentos 1 e 2.</li>
+    <li><strong>Ponte de GND Comum (Fios Pretos):</strong> Interligue todos os trilhos azuis: Barramento 1 (-) ao 2 (-), 2 (-) ao 3 (-), e 3 (-) ao 4 (-).</li>
+    <li><strong>Distribuição de 3.3V (Fios Vermelhos):</strong> Conecte a linha vermelha do Barramento 2 (+) ao 3 (+) e deste para o Barramento 4 (+). <em>Nunca conecte o Barramento 1 aos demais barramentos vermelhos!</em></li>
   </ul>
 
   <div class="page-footer">
@@ -591,42 +590,43 @@ html_content = """<!DOCTYPE html>
 <div class="page">
   <h1 class="section-title">🔌 3. Instalação do Processador e Sensor DHT22</h1>
 
-  <h2 class="step-title">🧠 Passo 2: Posicionamento Estratégico do ESP32 NodeMCU</h2>
+  <h2 class="step-title">🧠 Passo 2: Microcontrolador ESP32 no Vão Direito (Colunas 48 a 62)</h2>
   <p>
-    Devido à largura do módulo ESP32, se ele for inserido no meio de apenas uma protoboard, todos os furos de uma das laterais ficam cobertos. Utilizando o <strong>vão central entre as duas protoboards</strong>, garantimos <strong>4 furos livres por pino</strong> para fiação organizada.
+    Posicionado na <strong>extremidade direita</strong> unindo a <strong>fileira 'a'</strong> da Protoboard Superior à <strong>fileira 'j'</strong> da Protoboard Inferior. Essa montagem libera <strong>4 furos livres por pino</strong> (fileiras <code>b-e</code> em cima e <code>f-i</code> embaixo), mantendo a porta USB voltada para a borda externa da bancada.
   </p>
 
   <pre class="ascii-box">
-Protoboard Superior (Parte Inferior - Fileiras 'a' a 'e'):
-Coluna:    1   2   3   4   5   6   7   8  ...  15
-Fileira e: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]  <-- 4 furos livres p/ jumpers!
-Fileira d: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]
-Fileira c: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]
-Fileira b: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]
-Fileira a: (P) (P) (P) (P) (P) (P) (P) (P) ... (P)  <-- Pinos Superiores do ESP32
-           =======================================
-           | [USB]      ESP32 DEVKIT             |  <-- Sobre o vão central
-           |          (NodeMCU 30 pinos)         |      (Barramentos 2 e 3)
-           =======================================
-Fileira j: (P) (P) (P) (P) (P) (P) (P) (P) ... (P)  <-- Pinos Inferiores do ESP32
-Fileira i: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]
-Fileira h: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]
-Fileira g: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]
-Fileira f: [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] ... [ ]  <-- 4 furos livres p/ jumpers!
-Protoboard Inferior (Parte Superior - Fileiras 'f' a 'j')
+Protoboard Superior (Parte Inferior - Fileiras 'e' a 'a'):
+Coluna:    ...  48   49   50   51   52   53   ...   58   ...   61   62
+Fileira e: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]  <-- 4 furos livres p/ jumpers!
+Fileira d: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]
+Fileira c: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]
+Fileira b: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]
+Fileira a: ... (P)  (P)  (P)  (P)  (P)  (P)  ...  (P)  ...  (P)  (P)  <-- Pinos Superiores do ESP32
+Pino:          D23  D22  TX0  RX0  D21  D19  ...  D4   ...  GND  3V3
+               ======================================================
+               | [Antena]          ESP32 NODEMCU           [USB PC] |  <-- Sobre o vão central
+               ======================================================
+Pino:          EN   VP   VN   D34  D35  D32  ...  D14  ...  GND  VIN
+Fileira j: ... (P)  (P)  (P)  (P)  (P)  (P)  ...  (P)  ...  (P)  (P)  <-- Pinos Inferiores do ESP32
+Fileira i: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]
+Fileira h: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]
+Fileira g: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]
+Fileira f: ... [ ]  [ ]  [ ]  [ ]  [ ]  [ ]  ...  [ ]  ...  [ ]  [ ]  <-- 4 furos livres p/ jumpers!
+Protoboard Inferior (Parte Superior - Fileiras 'j' a 'f')
   </pre>
 
   <ul class="step-instructions">
-    <li><strong>Inserção Física:</strong> Espete os pinos superiores do ESP32 na fileira <strong>`a`</strong> da Protoboard Superior (colunas 1 a 15) e os inferiores na fileira <strong>`j`</strong> da Protoboard Inferior.</li>
-    <li><strong>Conexão de Aterramento:</strong> Ligue um jumper preto do pino <span class="badge-pin badge-gnd">GND</span> do ESP32 ao Barramento 4 (-).</li>
-    <li><strong>Conexão de Alimentação:</strong> Ligue um jumper vermelho do pino <span class="badge-pin badge-3v3">3V3</span> do ESP32 ao Barramento 4 (+). <em>(Em bancada conectada ao PC, a USB alimenta o ESP32 e distribui 3.3V ao circuito).</em></li>
+    <li><strong>Inserção Física:</strong> Encaixe os pinos superiores do ESP32 na fileira <strong>`a`</strong> da Protoboard Superior (colunas 48 a 62) e os inferiores na fileira <strong>`j`</strong> da Protoboard Inferior. A porta Micro-USB fica voltada para a direita.</li>
+    <li><strong>Alimentação Local 3.3V (Jumpers Verdes 2 Furos):</strong> Ligue o pino <span class="badge-pin badge-3v3">3V3</span> (coluna 62, fileira b) ao Barramento 2 (+) e o pino <span class="badge-pin badge-gnd">GND</span> (coluna 61, fileira b) ao Barramento 2 (-).</li>
+    <li><strong>Aterramento Inferior:</strong> Ligue o pino <span class="badge-pin badge-gnd">GND</span> inferior (coluna 61, fileira i) ao Barramento 3 (-).</li>
   </ul>
 
-  <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 10px 0;">
+  <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 8px 0;">
 
   <h2 class="step-title">🌡️ Passo 3: Sensor de Temperatura e Umidade (DHT22)</h2>
   <p>
-    O módulo DHT22 em plaquinha PCB preta possui 3 pinos: alimentação positiva, terra e sinal One-Wire. O resistor de <em>pull-up</em> já está soldado internamente na placa.
+    Módulo DHT22 em plaquinha preta com resistor interno de <em>pull-up</em>. Fixado na <strong>Protoboard Inferior</strong> (colunas 25, 26 e 27, fileira `e`), na área central desobstruída.
   </p>
 
   <pre class="ascii-box">
@@ -639,16 +639,16 @@ Protoboard Inferior (Colunas 25, 26, 27):
 Coluna:      25  26  27
 Pino:        [+] [OUT][-]
               |    |   |
-              |    |   +-----> (Fio Preto)    Ligar no [-] Barramento 4 (GND)
-              |    +---------> (Fio Amarelo)  Ligar no pino [GPIO 4] do ESP32
-              +--------------> (Fio Vermelho) Ligar no [+] Barramento 4 (3.3V)
+              |    |   +-----> (Jumper Preto)   Ligar no [-] Barramento 4 (GND)
+              |    +---------> (Jumper Amarelo) Ligar no pino [GPIO 4 (coluna 58)] do ESP32
+              +--------------> (Jumper Vermelho) Ligar no [+] Barramento 4 (3.3V)
   </pre>
 
   <ul class="step-instructions">
-    <li><strong>Posicionamento:</strong> Espete os 3 pinos na <strong>Protoboard Inferior</strong>, fileira <strong>`e`</strong>, colunas <strong>25</strong>, <strong>26</strong> e <strong>27</strong>.</li>
-    <li><strong>Coluna 25 (`+` / VCC):</strong> Ligue com jumper vermelho no <span class="badge-pin badge-3v3">Barramento 4 (3.3V)</span>.</li>
-    <li><strong>Coluna 26 (`OUT` / DAT):</strong> Ligue com jumper amarelo diretamente no <span class="badge-pin badge-gpio">GPIO 4 (D4)</span> do ESP32.</li>
-    <li><strong>Coluna 27 (`-` / GND):</strong> Ligue com jumper preto no <span class="badge-pin badge-gnd">Barramento 4 (GND)</span>.</li>
+    <li><strong>Posicionamento:</strong> Espete os 3 pinos na <strong>Protoboard Inferior</strong>, fileira <strong>`e`</strong>, colunas <strong>25, 26 e 27</strong>.</li>
+    <li><strong>Coluna 25 (`+` / VCC):</strong> Ligue no <span class="badge-pin badge-3v3">Barramento 4 (3.3V)</span>.</li>
+    <li><strong>Coluna 26 (`OUT` / DAT):</strong> Ligue com jumper flexível amarelo diretamente no pino <span class="badge-pin badge-gpio">GPIO 4 (D4)</span> na coluna 58, fileira `b`.</li>
+    <li><strong>Coluna 27 (`-` / GND):</strong> Ligue no <span class="badge-pin badge-gnd">Barramento 4 (GND)</span>.</li>
   </ul>
 
   <div class="page-footer">
@@ -663,7 +663,7 @@ Pino:        [+] [OUT][-]
 
   <h2 class="step-title">🧭 Passo 4: Sensor de Pressão Atmosférica e Altitude (BMP280)</h2>
   <p>
-    O módulo roxo <strong>GY-BMP280-3.3</strong> opera via comunicação digital I2C. Requer apenas duas linhas de clock/dados (<span class="badge-pin badge-gpio">SCL</span> e <span class="badge-pin badge-gpio">SDA</span>) e medição de alta precisão barométrica.
+    Módulo roxo <strong>GY-BMP280-3.3</strong> conectado via I2C. Requer apenas alimentação 3.3V e as linhas digitais de clock (<span class="badge-pin badge-gpio">SCL</span>) e dados (<span class="badge-pin badge-gpio">SDA</span>).
   </p>
 
   <div class="callout callout-danger">
@@ -679,50 +679,47 @@ Protoboard Inferior (Colunas 35 a 40):
              |   |   |   |   |   |   <-- Pinos inseridos na Fileira 'e' (Colunas 35 a 40)
 Coluna:     35  36  37  38  39  40
              |   |   |   |       |
-             |   |   |   |       +--> (Fio Preto)    Ligar no [-] Barramento 4 (GND) -> Fixa I2C em 0x76
-             |   |   |   +----------> (Fio Azul)     Ligar no [GPIO 21 (SDA)] do ESP32
-             |   |   +--------------> (Fio Verde)    Ligar no [GPIO 22 (SCL)] do ESP32
-             |   +------------------> (Fio Preto)    Ligar no [-] Barramento 4 (GND)
-             +----------------------> (Fio Vermelho) Ligar no [+] Barramento 4 (3.3V)
+             |   |   |   |       +--> (Jumper Verde 2 Furos) Ligar no [-] Barramento 4 (GND) -> Endereço 0x76
+             |   |   |   +----------> (Jumper Azul)          Ligar no [GPIO 21 (col 52, fil b)] do ESP32
+             |   |   +--------------> (Jumper Verde)         Ligar no [GPIO 22 (col 49, fil b)] do ESP32
+             |   +------------------> (Jumper Preto)         Ligar no [-] Barramento 4 (GND)
+             +----------------------> (Jumper Vermelho)      Ligar no [+] Barramento 4 (3.3V)
   </pre>
 
   <ul class="step-instructions">
     <li><strong>Posicionamento:</strong> Espete os 6 pinos na <strong>Protoboard Inferior</strong>, fileira <strong>`e`</strong>, colunas <strong>35 a 40</strong>.</li>
-    <li><strong>Coluna 35 (VCC):</strong> Jumper vermelho no <span class="badge-pin badge-3v3">Barramento 4 (3.3V)</span>.</li>
-    <li><strong>Coluna 36 (GND):</strong> Jumper preto no <span class="badge-pin badge-gnd">Barramento 4 (GND)</span>.</li>
-    <li><strong>Coluna 37 (SCL):</strong> Jumper verde ligado diretamente ao <span class="badge-pin badge-gpio">GPIO 22</span> do ESP32.</li>
-    <li><strong>Coluna 38 (SDA):</strong> Jumper azul ligado diretamente ao <span class="badge-pin badge-gpio">GPIO 21</span> do ESP32.</li>
-    <li><strong>Coluna 39 (CSB):</strong> Deixar desconectado (mantém modo I2C ativado).</li>
-    <li><strong>Coluna 40 (SDO):</strong> Jumper preto ligado ao <span class="badge-pin badge-gnd">GND</span>. Fixa o endereço do sensor em <code>0x76</code>.</li>
+    <li><strong>Coluna 35 (VCC) & 36 (GND):</strong> Jumper vermelho no <span class="badge-pin badge-3v3">Barramento 4 (3.3V)</span> e preto no <span class="badge-pin badge-gnd">Barramento 4 (GND)</span>.</li>
+    <li><strong>Coluna 37 (SCL):</strong> Jumper verde ligado diretamente ao <span class="badge-pin badge-gpio">GPIO 22</span> (coluna 49, fileira `b`) do ESP32.</li>
+    <li><strong>Coluna 38 (SDA):</strong> Jumper azul ligado diretamente ao <span class="badge-pin badge-gpio">GPIO 21</span> (coluna 52, fileira `b`) do ESP32.</li>
+    <li><strong>Coluna 39 (CSB) & 40 (SDO):</strong> Deixe CSB solto e use jumper verde em U de 2 furos ligando SDO ao GND (fixa endereço em <code>0x76</code>).</li>
   </ul>
 
-  <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 10px 0;">
+  <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 8px 0;">
 
   <h2 class="step-title">☀️ Passo 5: Módulo Sensor de Luminosidade (LDR Azul)</h2>
   <p>
-    O módulo LDR com comparador LM393 permite leitura contínua da luz solar incidente por meio da sua porta analógica <span class="badge-pin badge-adc">AO</span>.
+    Fixado na <strong>Protoboard Superior</strong> (colunas 40 a 43, fileira `f`), fornecendo leitura analógica da luz incidente via pino <span class="badge-pin badge-adc">AO</span>.
   </p>
 
   <pre class="ascii-box">
-Protoboard Superior (Colunas 25 a 28):
+Protoboard Superior (Colunas 40 a 43):
          +-------------------+
          |  MÓDULO LDR AZUL  |
          |  AO  DO  GND  VCC |
          +-------------------+
-            |   |    |    |    <-- Pinos inseridos na Fileira 'f' (Colunas 25 a 28)
-Coluna:    25  26   27   28
+            |   |    |    |    <-- Pinos inseridos na Fileira 'f' (Colunas 40 a 43)
+Coluna:    40  41   42   43
             |        |    |
-            |        |    +--> (Fio Vermelho) Ligar no [+] Barramento 2 (3.3V)
-            |        +-------> (Fio Preto)    Ligar no [-] Barramento 2 (GND)
-            +----------------> (Fio Branco)   Ligar no [GPIO 34 (ADC1)] do ESP32
+            |        |    +--> (Jumper Vermelho) Ligar no [+] Barramento 2 (3.3V)
+            |        +-------> (Jumper Preto)    Ligar no [-] Barramento 2 (GND)
+            +----------------> (Jumper Branco)   Ligar no [GPIO 34 (col 51, fil i)] do ESP32
   </pre>
 
   <ul class="step-instructions">
-    <li><strong>Posicionamento:</strong> Espete os 4 pinos na <strong>Protoboard Superior</strong>, fileira <strong>`f`</strong>, colunas <strong>25 a 28</strong>.</li>
-    <li><strong>Coluna 28 (VCC):</strong> Jumper vermelho no <span class="badge-pin badge-3v3">Barramento 2 (3.3V)</span>.</li>
-    <li><strong>Coluna 27 (GND):</strong> Jumper preto no <span class="badge-pin badge-gnd">Barramento 2 (GND)</span>.</li>
-    <li><strong>Coluna 26 (DO):</strong> Deixar desconectado.</li>
-    <li><strong>Coluna 25 (AO):</strong> Jumper branco conectado ao <span class="badge-pin badge-adc">GPIO 34 (D34 - ADC1)</span> do ESP32.</li>
+    <li><strong>Posicionamento:</strong> Espete os 4 pinos na <strong>Protoboard Superior</strong>, fileira <strong>`f`</strong>, colunas <strong>40 a 43</strong>.</li>
+    <li><strong>Coluna 43 (VCC) & 42 (GND):</strong> Ligados nos trilhos do <span class="badge-pin badge-3v3">Barramento 2 (3.3V)</span> e <span class="badge-pin badge-gnd">GND</span>.</li>
+    <li><strong>Coluna 41 (DO):</strong> Deixar desconectado.</li>
+    <li><strong>Coluna 40 (AO):</strong> Jumper branco conectado diretamente ao <span class="badge-pin badge-adc">GPIO 34 (coluna 51, fileira `i`)</span> do ESP32.</li>
   </ul>
 
   <div class="page-footer">
@@ -737,7 +734,7 @@ Coluna:    25  26   27   28
 
   <h2 class="step-title">🌧️ Passo 6: Sensor Pluviométrico de Chuva (DSK MH-RD)</h2>
   <p>
-    Formado por uma placa coletora de gotas exposta e uma plaquinha amplificadora LM393. A variação de condutividade hídrica entre as trilhas gera uma curva analógica inversamente proporcional à intensidade de precipitação.
+    Comparador LM393 posicionado na <strong>Protoboard Superior</strong> (colunas 28 a 31, fileira `f`), conectado à placa coletora por jumpers fêmea-fêmea externos.
   </p>
 
   <pre class="ascii-box">
@@ -749,50 +746,51 @@ Coluna:    25  26   27   28
          | MÓDULO CHUVA AZUL |
          |  VCC  GND  DO  AO |
          +-------------------+
-             |    |   |   |    <-- Pinos inseridos na Fileira 'f' (Colunas 35 a 38)
-Coluna:     35   36  37  38
+             |    |   |   |    <-- Pinos inseridos na Fileira 'f' (Colunas 28 a 31)
+Coluna:     28   29  30  31
              |    |       |
-             |    |       +--> (Fio Laranja)  Ligar no [GPIO 35 (ADC1)] do ESP32
-             |    +----------> (Fio Preto)    Ligar no [-] Barramento 2 (GND)
-             +---------------> (Fio Vermelho) Ligar no [+] Barramento 2 (3.3V)
+             |    |       +--> (Jumper Laranja)  Ligar no [GPIO 35 (col 52, fil i)] do ESP32
+             |    +----------> (Jumper Preto)    Ligar no [-] Barramento 2 (GND)
+             +---------------> (Jumper Vermelho) Ligar no [+] Barramento 2 (3.3V)
   </pre>
 
   <ul class="step-instructions">
-    <li><strong>Posicionamento do Comparador:</strong> Espete os 4 pinos na <strong>Protoboard Superior</strong>, fileira <strong>`f`</strong>, colunas <strong>35 a 38</strong>.</li>
-    <li><strong>Conexões Elétricas:</strong> VCC (coluna 35) no <span class="badge-pin badge-3v3">Barramento 2 (3.3V)</span>, GND (coluna 36) no <span class="badge-pin badge-gnd">GND</span>, e AO (coluna 38) no <span class="badge-pin badge-adc">GPIO 35 (ADC1)</span> do ESP32.</li>
-    <li><strong>Acoplamento da Placa Coletora:</strong> Use 2 jumpers fêmea-fêmea para ligar os 2 pinos superiores do módulo comparador aos 2 pinos da placa grande coletora DSK MH-RD (não há ordem de polaridade entre esses 2 fios).</li>
+    <li><strong>Posicionamento do Comparador:</strong> Espete os 4 pinos na <strong>Protoboard Superior</strong>, fileira <strong>`f`</strong>, colunas <strong>28 a 31</strong>.</li>
+    <li><strong>Alimentação:</strong> VCC (coluna 28) no <span class="badge-pin badge-3v3">Barramento 2 (3.3V)</span> e GND (coluna 29) no <span class="badge-pin badge-gnd">GND</span>.</li>
+    <li><strong>Sinal Analógico:</strong> AO (coluna 31) com jumper laranja ligado ao <span class="badge-pin badge-adc">GPIO 35 (coluna 52, fileira `i`)</span> do ESP32.</li>
+    <li><strong>Placa Coletora:</strong> Ligue os 2 pinos superiores aos 2 pinos da placa DSK MH-RD usando jumpers fêmea-fêmea.</li>
   </ul>
 
-  <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 10px 0;">
+  <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 8px 0;">
 
   <h2 class="step-title">💨 Passo 7: Sensor de Gases Atmosféricos (MQ-135)</h2>
   <p>
-    O sensor MQ-135 integra uma resistência térmica interna de óxido de estanho (SnO2) que requer <strong>5.0V estáveis</strong> para operar em temperatura adequada de clivagem química.
+    Sensor posicionado na <strong>Protoboard Superior</strong> (colunas 18 a 21, fileira `f`). Seu aquecedor requer <strong>5.0V estáveis</strong> do Barramento 1 para pré-aquecimento químico.
   </p>
 
   <pre class="ascii-box">
-Protoboard Superior (Colunas 48 a 51):
+Protoboard Superior (Colunas 18 a 21):
          +-------------------+
          |  MQ-135 (Prateado)|
          |  VCC  GND  DO  AO |
          +-------------------+
-             |    |   |   |    <-- Pinos inseridos na Fileira 'f' (Colunas 48 a 51)
-Coluna:     48   49  50  51
+             |    |   |   |    <-- Pinos inseridos na Fileira 'f' (Colunas 18 a 21)
+Coluna:     18   19  20  21
              |    |       |
-             |    |       +--> (Fio Roxo)     Ligar no [GPIO 32 (ADC1)] do ESP32 (*)
-             |    +----------> (Fio Preto)    Ligar no [-] Barramento 1 (GND)
-             +---------------> (Fio Vermelho) Ligar no [+] Barramento 1 (5V EXCLUSIVO)
+             |    |       +--> (Jumper Roxo)     Divisor Resistivo -> [GPIO 32 (col 53, fil i)] ESP32
+             |    +----------> (Jumper Preto)    Ligar no [-] Barramento 1 (GND)
+             +---------------> (Jumper Vermelho) Ligar no [+] Barramento 1 (5.0V EXCLUSIVO)
   </pre>
 
   <ul class="step-instructions">
-    <li><strong>Posicionamento:</strong> Espete os 4 pinos na <strong>Protoboard Superior</strong>, fileira <strong>`f`</strong>, colunas <strong>48 a 51</strong>.</li>
-    <li><strong>Alimentação 5V:</strong> Ligue o VCC (coluna 48) na linha vermelha do <span class="badge-pin badge-5v">Barramento 1 (5.0V Exclusivo)</span>.</li>
-    <li><strong>Aterramento:</strong> Ligue o GND (coluna 49) na linha azul do <span class="badge-pin badge-gnd">Barramento 1 (GND)</span>.</li>
-    <li><strong>Sinal Analógico:</strong> Ligue a saída AO (coluna 51) com fio roxo ao <span class="badge-pin badge-adc">GPIO 32 (ADC1)</span> do ESP32.</li>
+    <li><strong>Posicionamento:</strong> Espete os 4 pinos na <strong>Protoboard Superior</strong>, fileira <strong>`f`</strong>, colunas <strong>18 a 21</strong>.</li>
+    <li><strong>Alimentação 5.0V Exclusivo:</strong> Ligue o VCC (coluna 18) na linha vermelha do <span class="badge-pin badge-5v">Barramento 1 (5.0V Exclusivo)</span>.</li>
+    <li><strong>Aterramento:</strong> Ligue o GND (coluna 19) na linha azul do <span class="badge-pin badge-gnd">Barramento 1 (GND)</span>.</li>
+    <li><strong>Sinal Analógico com Divisor:</strong> Ligue o AO (coluna 21) ao divisor de tensão (1 kΩ / 2 kΩ) e o ponto central atenuado ao <span class="badge-pin badge-adc">GPIO 32 (coluna 53, fileira `i`)</span> do ESP32.</li>
   </ul>
 
   <div class="callout callout-tip">
-    <strong>Proteção por Divisor de Tensão (1 kΩ / 2 kΩ):</strong> Caso o ambiente apresente alta concentração de gases e a saída atinja 5V, conecte um resistor de 1 kΩ do pino AO a uma linha livre, e um resistor de 2 kΩ dessa linha para o GND. Conecte o GPIO 32 nessa junção central (tensão máxima atenuada: 3.33V).
+    <strong>Proteção por Divisor de Tensão (1 kΩ / 2 kΩ):</strong> O resistor de 1 kΩ conecta o AO a uma linha livre, e o resistor de 2 kΩ liga essa linha ao GND. Conecte o GPIO 32 nessa junção central (tensão máxima atenuada de 3.33V, protegendo os circuitos internos do ESP32).
   </div>
 
   <div class="page-footer">
@@ -801,11 +799,11 @@ Coluna:     48   49  50  51
   </div>
 </div>
 
-<!-- ================= PAGE 7: TABELA MESTRA & DEDUAÇÃO MATEMÁTICA ================= -->
+<!-- ================= PAGE 7: TABELA MESTRA, GUIA JUMPERS & DEDUÇÃO ================= -->
 <div class="page">
-  <h1 class="section-title">📊 6. Tabela Mestra de Fiação e Fundamentação Elétrica</h1>
+  <h1 class="section-title">📊 6. Tabela Mestra e Guia de Jumpers Rígidos em U</h1>
   <p>
-    Consolidação completa de todas as conexões do circuito para conferência rápida de bancada:
+    Consolidação de todas as conexões e mapeamento do kit de jumpers rígidos em U padronizados por cor:
   </p>
 
   <table class="tech-table">
@@ -816,39 +814,39 @@ Coluna:     48   49  50  51
         <th>Posição na Protoboard</th>
         <th>Porta no ESP32</th>
         <th>Cor Recomendada</th>
-        <th>Comportamento / Observações</th>
+        <th>Finalidade / Comportamento</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td><strong>Fonte MB102</strong></td>
         <td>Sup. / Inf.</td>
-        <td>Colunas 1 a 12 (Proto Sup.)</td>
+        <td>Colunas 1 a 8 (Proto Sup.)</td>
         <td>—</td>
-        <td>Amarelo (Jumpers)</td>
+        <td>Amarelo (Seletores)</td>
         <td>5V no Barramento 1; 3.3V no Barramento 2</td>
       </tr>
       <tr>
         <td><strong>Malha GND</strong></td>
         <td>Trilhos (-)</td>
         <td>Barramentos 1, 2, 3 e 4</td>
-        <td>Pino GND ESP32</td>
+        <td>GND ESP32 (Col. 61)</td>
         <td>Preto</td>
-        <td>Referência de potencial elétrico comum (0V)</td>
+        <td>Referencial de potencial elétrico comum (0V)</td>
       </tr>
       <tr>
         <td><strong>ESP32 DevKit</strong></td>
         <td>3V3 / GND</td>
-        <td>Colunas 1 a 15 (Vão Central)</td>
-        <td>Barr. 4 (+) / Barr. 4 (-)</td>
-        <td>Vermelho / Preto</td>
-        <td>Alimentação principal da CPU e barramento 3.3V</td>
+        <td>Colunas 48 a 62 (Vão Direito)</td>
+        <td>Barr. 2 (+) / Barr. 2 (-)</td>
+        <td>Verde (U 2 furos)</td>
+        <td>Alimentação local 3.3V e aterramento</td>
       </tr>
       <tr>
         <td><strong>DHT22</strong></td>
         <td>OUT</td>
         <td>Coluna 26 (Proto Inf. 'e')</td>
-        <td><span class="badge-pin badge-gpio">GPIO 4</span></td>
+        <td><span class="badge-pin badge-gpio">GPIO 4 (Col. 58)</span></td>
         <td>Amarelo</td>
         <td>Sinal digital One-Wire (Pull-up interno na PCB)</td>
       </tr>
@@ -863,46 +861,78 @@ Coluna:     48   49  50  51
       <tr>
         <td><strong>Módulo LDR</strong></td>
         <td>AO</td>
-        <td>Coluna 25 (Proto Sup. 'f')</td>
-        <td><span class="badge-pin badge-adc">GPIO 34 (ADC1)</span></td>
+        <td>Coluna 40 (Proto Sup. 'f')</td>
+        <td><span class="badge-pin badge-adc">GPIO 34 (ADC1 - Col. 51)</span></td>
         <td>Branco</td>
         <td>Sinal analógico (Mais escuro = maior tensão/ADC)</td>
       </tr>
       <tr>
         <td><strong>Sensor Chuva</strong></td>
         <td>AO</td>
-        <td>Coluna 38 (Proto Sup. 'f')</td>
-        <td><span class="badge-pin badge-adc">GPIO 35 (ADC1)</span></td>
+        <td>Coluna 31 (Proto Sup. 'f')</td>
+        <td><span class="badge-pin badge-adc">GPIO 35 (ADC1 - Col. 52)</span></td>
         <td>Laranja</td>
         <td>Sinal analógico (Seco = ~4095; Chuva forte = ~0)</td>
       </tr>
       <tr>
         <td><strong>Sensor MQ-135</strong></td>
         <td>VCC / AO</td>
-        <td>Colunas 48 e 51 (Proto Sup.)</td>
+        <td>Colunas 18 e 21 (Proto Sup.)</td>
         <td><span class="badge-pin badge-5v">Barr. 1</span> / <span class="badge-pin badge-adc">GPIO 32</span></td>
         <td>Vermelho / Roxo</td>
-        <td>VCC ligado estritamente em 5V para pré-aquecimento</td>
+        <td>VCC estrito em 5V; AO com divisor resistivo</td>
       </tr>
     </tbody>
   </table>
 
-  <h2 class="step-title" style="margin-top: 12px;">📐 Demonstração Matemática do Divisor de Tensão</h2>
+  <h2 class="step-title" style="margin-top: 6px;">📏 Guia de Utilização do Kit de Jumpers Rígidos em U</h2>
+  <table class="tech-table">
+    <thead>
+      <tr>
+        <th>Tamanho / Cor</th>
+        <th>Alcance</th>
+        <th>Aplicação Específica no Circuito EcoPulse</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Verde Pequeno</strong></td>
+        <td>2 furos</td>
+        <td>Alimentação local do ESP32 (3V3 e GND nos Barramentos 2 e 3); pino SDO do BMP280 ao GND.</td>
+      </tr>
+      <tr>
+        <td><strong>Laranja / Vermelho</strong></td>
+        <td>3 a 5 furos</td>
+        <td><strong>Pontes da Coluna 30</strong> unindo esquerda e direita dos Barramentos 1 a 4; montagem do divisor.</td>
+      </tr>
+      <tr>
+        <td><strong>Amarelo / Azul</strong></td>
+        <td>7 a 10 furos</td>
+        <td>Transposição entre as fileiras de sensores e os barramentos de alimentação mais próximos.</td>
+      </tr>
+      <tr>
+        <td><strong>Longos (Branco / Marrom)</strong></td>
+        <td>> 15 furos</td>
+        <td>Pontes verticais de GND Comum e distribuição de 3.3V entre os barramentos 2, 3 e 4.</td>
+      </tr>
+      <tr>
+        <td><strong>Jumpers Flexíveis (M-M)</strong></td>
+        <td>Variável</td>
+        <td>Linhas de dados que cruzam a bancada até o ESP32 (D4, D21, D22, D32, D34, D35).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="step-title" style="margin-top: 6px;">📐 Demonstração Matemática do Divisor de Tensão</h2>
   <div class="card-box">
-    <p style="font-size: 8.5pt;">
-      O conversor ADC do ESP32 possui tensão de saturação em V_ref = 3.3V. Como o sensor MQ-135 é alimentado com V_in = 5.0V, a aplicação direta poderia sobrecarregar a porta lógica interna. O dimensionamento adota a regra do divisor resistivo:
+    <p style="font-size: 8.1pt;">
+      O conversor ADC do ESP32 satura em V_ref = 3.3V. Como o MQ-135 opera em V_in = 5.0V, adota-se o divisor resistivo para atenuar o sinal:
     </p>
-    <div style="text-align: center; font-size: 10pt; font-weight: bold; margin: 6px 0; color: #0f172a; font-family: monospace;">
-      V_out = V_in * [ R2 / (R1 + R2) ]
+    <div style="text-align: center; font-size: 9.5pt; font-weight: bold; margin: 4px 0; color: #0f172a; font-family: monospace;">
+      V_out = V_in * [ R2 / (R1 + R2) ] &nbsp;=&gt;&nbsp; 5.0V * [ 2000 / (1000 + 2000) ] = 3.33V
     </div>
-    <p style="font-size: 8.5pt;">
-      Adotando resistores comerciais de precisão R1 = 1 kΩ e R2 = 2 kΩ:
-    </p>
-    <div style="text-align: center; font-size: 9.5pt; font-family: monospace; color: #059669; margin: 4px 0;">
-      V_out(max) = 5.0V * (2000 / (1000 + 2000)) = 5.0V * 0.6667 = 3.33V
-    </div>
-    <p style="font-size: 8pt; color: #64748b; margin-top: 4px;">
-      O valor de pico obtido de 3.33V opera rigorosamente dentro da tolerância de entrada dos pinos analógicos do chip ESP32 (máx. 3.6V em regime transitório), assegurando vida útil ilimitada aos transistores de entrada CMOS.
+    <p style="font-size: 7.8pt; color: #64748b; margin-top: 2px;">
+      O pico atenuado de 3.33V opera dentro da tolerância do ESP32 (máx. 3.6V), assegurando integridade e vida útil ilimitada à porta CMOS.
     </p>
   </div>
 
@@ -961,23 +991,23 @@ Coluna:     48   49  50  51
     </div>
   </div>
 
-  <h2 class="step-title" style="margin-top: 12px;">💻 Procedimento de Validação no Monitor Serial</h2>
-  <div class="card-box" style="font-size: 8.5pt;">
-    <ol style="margin-left: 18px; line-height: 1.5;">
+  <h2 class="step-title" style="margin-top: 10px;">💻 Procedimento de Validação no Monitor Serial</h2>
+  <div class="card-box" style="font-size: 8.3pt;">
+    <ol style="margin-left: 18px; line-height: 1.45;">
       <li>Conecte o cabo micro-USB ao computador e selecione a porta serial correspondente (ex: <code>/dev/ttyUSB0</code> ou <code>COM3</code>).</li>
       <li>Abra o <strong>PlatformIO Monitor Serial</strong> ou Arduino IDE na velocidade de <strong>115200 baud</strong>.</li>
       <li>Pressione o botão <strong>EN (Reset)</strong> no ESP32. A saída inicial deverá reportar:
-        <br><code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 8pt; color: #0f172a;">[BMP280] Sensor detectado no endereco 0x76.</code>
-        <br><code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 8pt; color: #0f172a;">[DHT22] Sensor de Temperatura e Umidade inicializado.</code>
+        <br><code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 7.8pt; color: #0f172a;">[BMP280] Sensor detectado no endereco 0x76.</code>
+        <br><code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 7.8pt; color: #0f172a;">[DHT22] Sensor de Temperatura e Umidade inicializado.</code>
       </li>
       <li>Coloque a mão sobre o sensor LDR para verificar a variação imediata no valor de radiação lido.</li>
       <li>Pingue 1 gota d'água na placa pluviométrica para observar a queda da leitura analógica de ~4095 para valores abaixo de 1500.</li>
     </ol>
   </div>
 
-  <div style="margin-top: 16px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; background: #f8fafc;">
-    <div style="font-size: 8.8pt; font-weight: bold; color: #0f172a; margin-bottom: 6px;">Ficha de Homologação de Bancada (Laboratório UNIP)</div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 8pt; color: #475569;">
+  <div style="margin-top: 14px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px; background: #f8fafc;">
+    <div style="font-size: 8.6pt; font-weight: bold; color: #0f172a; margin-bottom: 5px;">Ficha de Homologação de Bancada (Laboratório UNIP)</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 7.8pt; color: #475569;">
       <div><strong>Data da Montagem:</strong> ____ / ____ / 2026</div>
       <div><strong>Operador / Aluno:</strong> Wallace Vilela</div>
       <div><strong>Status do Circuito:</strong> [  ] Aprovado  [  ] Ajustes</div>

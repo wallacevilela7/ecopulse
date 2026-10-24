@@ -34,6 +34,7 @@ A estação adota o microcontrolador **ESP32 NodeMCU-32S** como nó de borda int
 
 ## 3. Estrutura dos Documentos Técnicos
 
+* [**📘 Livreto / Manual de Montagem em PDF (`manual_montagem_ecopulse.pdf`)**](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/manual_montagem_ecopulse.pdf): Edição diagramada de 8 páginas pronta para visualização no celular ou impressão em laboratório.
 * [**Guia de Montagem do Circuito Passo a Passo (`guia_montagem_circuito.md`)**](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/guia_montagem_circuito.md): Roteiro minucioso para montar os componentes na bancada de forma segura e organizada.
 * [**Tabela de Pinout e Conexões (`pinout_conexoes.md`)**](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/pinout_conexoes.md): Mapeamento pino a pino de todos os periféricos nos GPIOs do ESP32.
 * [**Cálculos dos Divisores de Tensão (`calculo_divisores_tensao.md`)**](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/hardware/calculo_divisores_tensao.md): Fórmulas teóricas e justificativas elétricas para proteção das portas analógicas (ADC) do ESP32.

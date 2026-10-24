@@ -36,6 +36,7 @@ ecopulse/
 │
 ├── hardware/                  # Engenharia eletrônica, IoT e esquemáticos elétricos
 │   ├── README.md              # Lista de materiais (BOM) e visão geral dos componentes
+│   ├── manual_montagem_ecopulse.pdf # Livreto diagramado ilustrado para bancada/laboratório
 │   ├── guia_montagem_circuito.md # Roteiro passo a passo minucioso para montagem na protoboard
 │   ├── pinout_conexoes.md     # Mapeamento pino a pino ESP32 x Sensores com tensões
 │   ├── calculo_divisores_tensao.md # Fórmulas matemáticas e dimensionamento dos resistores

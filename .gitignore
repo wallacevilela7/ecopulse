@@ -39,6 +39,9 @@ build/
 *.pem
 *.key
 credentials.json
+**/config.h
+!**/config.h.example
+
 
 # IDEs e Editores
 .vscode/*

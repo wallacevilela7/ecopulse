@@ -10,7 +10,7 @@
 
 ## 1. Visão Geral do Projeto
 
-O **EcoPulse** é um sistema computacional ciber-físico (Internet das Coisas - IoT) para monitoramento micrometeorológico e qualidade do ar em tempo real. O ecossistema abrange:
+O **EcoPulse** é um sistema computacional IoT para monitoramento micrometeorológico e qualidade do ar em tempo real. O ecossistema abrange:
 1. **Nó de Borda (Edge):** ESP32 com cluster de 5 sensores físicos operando no bloco ADC1.
 2. **Ingestão & Backend:** API RESTful em Python (FastAPI) com validação estrita (Pydantic) e autenticação `X-API-Key`.
 3. **Persistência:** Camada ORM com SQLAlchemy para séries temporais (compatibilidade dual: SQLite local e AWS RDS PostgreSQL).

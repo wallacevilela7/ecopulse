@@ -42,6 +42,18 @@ credentials.json
 **/config.h
 !**/config.h.example
 
+# Banco de Dados Local
+*.db
+*.sqlite
+*.sqlite3
+
+# AWS e Infraestrutura Privada
+infra/aws/private/*
+!infra/aws/private/.gitkeep
+.aws/private/*
+!.aws/private/.gitkeep
+.env.aws*
+
 
 # IDEs e Editores
 .vscode/*

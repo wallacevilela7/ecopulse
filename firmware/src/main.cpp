@@ -1,4 +1,5 @@
 #include <WiFi.h>
+#include <HTTPClient.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include <Wire.h>
@@ -18,6 +19,18 @@
 #ifndef WIFI_SSID
   #define WIFI_SSID     "SEU_SSID_AQUI"
   #define WIFI_PASSWORD "SUA_SENHA_AQUI"
+#endif
+
+#ifndef API_URL
+  #define API_URL       "http://192.168.18.121:8000/api/v1/telemetry"
+#endif
+
+#ifndef API_KEY
+  #define API_KEY       "chave-secreta-estacao-unip-2026"
+#endif
+
+#ifndef DEVICE_ID
+  #define DEVICE_ID     "esp32-meteo-01"
 #endif
 
 const char* ssid     = WIFI_SSID;
@@ -327,6 +340,57 @@ void configurarRotasWeb() {
   });
 }
 
+// Controle de envio de telemetria HTTP ao Backend
+unsigned long ultimaTelemetriaHttp = 0;
+const unsigned long intervaloTelemetriaHttp = 10000; // Envia a cada 10 segundos
+
+void enviarTelemetriaHttp(float dht_temp, float dht_umidade, float bmp_temp, float bmp_pressao, float bmp_alt, MQ135Data mq, LDRData ldr, RainData rain) {
+  if (WiFi.status() != WL_CONNECTED) {
+    return;
+  }
+
+  HTTPClient http;
+  http.begin(API_URL);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("X-API-Key", API_KEY);
+  http.setTimeout(3000); // Timeout maximo de 3 segundos para nao travar o microcontrolador
+
+  // Temperatura representativa: prefere DHT22, fallback para BMP280
+  float tempFinal = !isnan(dht_temp) ? dht_temp : bmp_temp;
+
+  // Montagem compacta e estruturada do JSON conforme contrato REST da API
+  String json = "{";
+  json += "\"device_id\":\"" + String(DEVICE_ID) + "\",";
+  json += "\"sensors\":{";
+  if (!isnan(tempFinal)) json += "\"temperature_c\":" + String(tempFinal, 2) + ",";
+  if (!isnan(dht_umidade)) json += "\"humidity_pct\":" + String(dht_umidade, 2) + ",";
+  if (!isnan(bmp_pressao)) json += "\"pressure_hpa\":" + String(bmp_pressao, 2) + ",";
+  if (!isnan(bmp_alt)) json += "\"altitude_m\":" + String(bmp_alt, 2) + ",";
+  if (mq.status == "OK") json += "\"air_quality_ppm\":" + String(mq.estimatedPpm, 1) + ",";
+  json += "\"luminosity_pct\":" + String(ldr.luminosityPct, 1) + ",";
+  json += "\"rain_intensity_pct\":" + String(rain.intensityPct, 1) + ",";
+  json += "\"is_raining\":" + String(rain.isRaining ? "true" : "false");
+  json += "},";
+  json += "\"diagnostics\":{";
+  json += "\"uptime_seconds\":" + String(millis() / 1000) + ",";
+  json += "\"wifi_rssi_dbm\":" + String(WiFi.RSSI()) + ",";
+  json += "\"free_heap_bytes\":" + String(ESP.getFreeHeap());
+  json += "}";
+  json += "}";
+
+  int httpCode = http.POST(json);
+
+  if (httpCode == HTTP_CODE_CREATED || httpCode == HTTP_CODE_OK) {
+    enviarOutput("[HTTP] Telemetria entregue ao Backend com sucesso! (HTTP " + String(httpCode) + ")\n");
+  } else if (httpCode > 0) {
+    enviarOutput("[HTTP] Backend respondeu status: " + String(httpCode) + "\n");
+  } else {
+    enviarOutput("[HTTP] Falha ao conectar no Backend (" + String(API_URL) + "): " + http.errorToString(httpCode) + "\n");
+  }
+
+  http.end();
+}
+
 void setup() {
   Serial.begin(115200);
   delay(1000);
@@ -388,6 +452,7 @@ void setup() {
   enviarOutput("[OK] MQ-135 configurado no GPIO 32 (ADC1) com divisor 1k/2k (fator 1.5x).\n");
   enviarOutput("[OK] LDR (Luz) configurado no GPIO " + String(LDR_PIN) + " (ADC1 - 3.3V).\n");
   enviarOutput("[OK] Pluviometro (Chuva) configurado no GPIO " + String(RAIN_PIN) + " (ADC1 - 3.3V).\n");
+  enviarOutput("[OK] Destino de Telemetria HTTP: " + String(API_URL) + " (a cada 10s)\n");
   enviarOutput("     Tempo de pre-aquecimento MQ-135: 180s (3 minutos).\n");
   enviarOutput("Setup finalizado. Lendo todos os sensores a cada 2s...\n\n");
 }
@@ -433,16 +498,23 @@ void loop() {
       }
     }
 
+    float bmp_temp = NAN;
+    float bmp_pressao = NAN;
+    float bmp_altitude = NAN;
+
     // Leitura do BMP280 (Pressao, Temperatura e Altitude)
     if (bmpAtivo) {
-      float bmp_temp = bmp.readTemperature();
-      float bmp_pressao = bmp.readPressure() / 100.0F;
-      float bmp_altitude = bmp.readAltitude(1013.25);
+      bmp_temp = bmp.readTemperature();
+      bmp_pressao = bmp.readPressure() / 100.0F;
+      bmp_altitude = bmp.readAltitude(1013.25);
 
       if (isnan(bmp_temp) || isnan(bmp_pressao) || bmp_pressao == 0) {
         bloco += "[BMP280]  ERRO: Leitura corrompida (NaN). Reiniciando sensor...\n";
         bmpAtivo = false;
         bloco += diagnosticarBarramentoI2C();
+        bmp_temp = NAN;
+        bmp_pressao = NAN;
+        bmp_altitude = NAN;
       } else {
         bloco += "[BMP280]  Temp: " + String(bmp_temp, 2) + " °C | Pressao: " + String(bmp_pressao, 2) + " hPa | Alt. Aprox: " + String(bmp_altitude, 2) + " m\n";
       }
@@ -487,5 +559,11 @@ void loop() {
 
     // Dispara o bloco identico para todos os canais (USB, Terminal Wi-Fi e Web)
     enviarOutput(bloco);
+
+    // 6. Transmissao periodica de telemetria HTTP para a API Backend (a cada 10s)
+    if (millis() - ultimaTelemetriaHttp >= intervaloTelemetriaHttp) {
+      ultimaTelemetriaHttp = millis();
+      enviarTelemetriaHttp(dht_temp, dht_umidade, bmp_temp, bmp_pressao, bmp_altitude, mq, ldr, rain);
+    }
   }
 }

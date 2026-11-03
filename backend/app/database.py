@@ -18,22 +18,20 @@ def criar_engine(url: str):
     if url.startswith("sqlite"):
         connect_args = {"check_same_thread": False}
     
-    eng = create_engine(
-        url,
-        connect_args=connect_args,
-        pool_pre_ping=True,
-    )
-
-    # Testa se a conexão é viável (para PostgreSQL remoto/local)
-    if not url.startswith("sqlite"):
-        try:
+    try:
+        eng = create_engine(
+            url,
+            connect_args=connect_args,
+            pool_pre_ping=True,
+        )
+        # Testa se a conexão é viável (para PostgreSQL remoto/local)
+        if not url.startswith("sqlite"):
             with eng.connect():
                 pass
-        except Exception:
-            print("[DATABASE] PostgreSQL inacessível no momento. Ativando fallback para SQLite local.", file=sys.stderr)
-            return create_engine("sqlite:///./ecopulse.db", connect_args={"check_same_thread": False})
-    
-    return eng
+        return eng
+    except Exception:
+        print("[DATABASE] PostgreSQL inacessível no momento. Ativando fallback para SQLite local.", file=sys.stderr)
+        return create_engine("sqlite:///./ecopulse.db", connect_args={"check_same_thread": False})
 
 
 engine = criar_engine(DATABASE_URL)

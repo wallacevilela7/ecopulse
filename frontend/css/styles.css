@@ -853,3 +853,30 @@ body {
     align-items: flex-start;
   }
 }
+
+/* ==========================================================================
+   Microinterações Real-Time: Flashes de Oscilação Sensorial
+   ========================================================================== */
+.value-flash-up {
+  animation: flashUp 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.value-flash-down {
+  animation: flashDown 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-oscillation {
+  box-shadow: 0 0 16px rgba(100, 210, 255, 0.35) !important;
+  border-color: rgba(100, 210, 255, 0.45) !important;
+}
+
+@keyframes flashUp {
+  0% { color: var(--apple-green); text-shadow: 0 0 12px rgba(48, 209, 88, 0.8); transform: translateY(-1px); }
+  100% { color: inherit; text-shadow: none; transform: translateY(0); }
+}
+
+@keyframes flashDown {
+  0% { color: var(--apple-yellow); text-shadow: 0 0 12px rgba(255, 214, 10, 0.8); transform: translateY(1px); }
+  100% { color: inherit; text-shadow: none; transform: translateY(0); }
+}
+

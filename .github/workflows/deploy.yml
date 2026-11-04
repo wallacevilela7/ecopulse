@@ -75,3 +75,4 @@ jobs:
             docker compose restart webserver
             
             echo "[CI/CD] Deploy concluído com sucesso e serviços ativos!"
+

@@ -74,3 +74,4 @@ function initStationMap() {
     coordsPill.textContent = `${DEFAULT_LAT.toFixed(4)}° S, ${DEFAULT_LNG.toFixed(4)}° W • Raio: ${COVERAGE_RADIUS_METERS}m`;
   }
 }
+

@@ -340,9 +340,12 @@ void configurarRotasWeb() {
   });
 }
 
-// Controle de envio de telemetria HTTP ao Backend
+// Controle de envio de telemetria HTTP ao Backend (Alta Frequência Real-Time)
 unsigned long ultimaTelemetriaHttp = 0;
-const unsigned long intervaloTelemetriaHttp = 10000; // Envia a cada 10 segundos
+const unsigned long intervaloTelemetriaHttp = 2500; // Envia a cada 2.5 segundos em regime nominal
+bool statusChuvaAnterior = false;
+float ultimoPpmEnviado = 0.0f;
+float ultimaLuzEnviada = 0.0f;
 
 void enviarTelemetriaHttp(float dht_temp, float dht_umidade, float bmp_temp, float bmp_pressao, float bmp_alt, MQ135Data mq, LDRData ldr, RainData rain) {
   if (WiFi.status() != WL_CONNECTED) {
@@ -560,9 +563,18 @@ void loop() {
     // Dispara o bloco identico para todos os canais (USB, Terminal Wi-Fi e Web)
     enviarOutput(bloco);
 
-    // 6. Transmissao periodica de telemetria HTTP para a API Backend (a cada 10s)
-    if (millis() - ultimaTelemetriaHttp >= intervaloTelemetriaHttp) {
+    // 6. Transmissao Reativa de Alta Frequência (Tempo Real)
+    // Dispara a cada 2.5s ou IMEDIATAMENTE se houver oscilacao brusca (chuva, gases ou luz)
+    bool mudancaChuva = (rain.isRaining != statusChuvaAnterior);
+    bool mudancaGas = (fabs(mq.estimatedPpm - ultimoPpmEnviado) >= 40.0f);
+    bool mudancaLuz = (fabs(ldr.luminosityPct - ultimaLuzEnviada) >= 15.0f);
+    bool tempoExpirado = (millis() - ultimaTelemetriaHttp >= intervaloTelemetriaHttp);
+
+    if (tempoExpirado || mudancaChuva || mudancaGas || mudancaLuz) {
       ultimaTelemetriaHttp = millis();
+      statusChuvaAnterior = rain.isRaining;
+      ultimoPpmEnviado = mq.estimatedPpm;
+      ultimaLuzEnviada = ldr.luminosityPct;
       enviarTelemetriaHttp(dht_temp, dht_umidade, bmp_temp, bmp_pressao, bmp_altitude, mq, ldr, rain);
     }
   }

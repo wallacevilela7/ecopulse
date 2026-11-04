@@ -212,6 +212,43 @@ function updateTelemetryChartData(records) {
 }
 
 /**
+ * Adiciona uma medição pontual recebida via Streaming SSE em tempo real (< 10ms)
+ */
+function appendLiveChartPoint(record) {
+  if (!chartInstance || !record) return;
+
+  const cfg = METRIC_CONFIGS[currentMetric];
+  const s = record.sensors || record;
+  const val = s[cfg.field] !== undefined ? s[cfg.field] : null;
+  if (val === null) return;
+
+  const d = new Date(record.recorded_at || Date.now());
+  const label = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  // Adiciona ao cache
+  cachedHistoryData.push(record);
+  if (cachedHistoryData.length > 40) {
+    cachedHistoryData.shift();
+  }
+
+  // Adiciona ao dataset visual
+  chartInstance.data.labels.push(label);
+  chartInstance.data.datasets[0].data.push(val);
+
+  if (chartInstance.data.labels.length > 40) {
+    chartInstance.data.labels.shift();
+    chartInstance.data.datasets[0].data.shift();
+  }
+
+  chartInstance.update(); // Transição visual fluida
+
+  const counterEl = document.getElementById('chartPointsCount');
+  if (counterEl) {
+    counterEl.textContent = `${chartInstance.data.labels.length} medições ativas • Streaming Contínuo`;
+  }
+}
+
+/**
  * Configura os botões da barra segmentada Apple
  */
 function setupSegmentedControls() {

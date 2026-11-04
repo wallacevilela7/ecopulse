@@ -1,15 +1,13 @@
 /**
- * EcoPulse — Orquestrador do Dashboard Web (Vanilla ES6+)
- * Integração assíncrona com FastAPI, cálculos meteorológicos e polling resiliente
+ * EcoPulse — Orquestrador do Dashboard Web em Tempo Real (Vanilla ES6+)
+ * Streaming SSE de baixa latência (< 10ms), detecção de oscilação e cálculos meteorológicos
  */
 
-// Configuração resiliente da API:
-// 1. Se estiver na AWS ou Nginx (porta 80/443), usa rota relativa origin/api/v1
-// 2. Se estiver em Live Server (porta 5500, 3000 etc.) ou file://, direciona para http://localhost:8000/api/v1
+// Resolução inteligente da API
 function resolveApiBaseUrl() {
   const origin = window.location.origin || '';
   const port = window.location.port || '';
-  
+
   if (!origin.startsWith('http') || (port !== '' && port !== '80' && port !== '443' && port !== '8000')) {
     return 'http://localhost:8000/api/v1';
   }
@@ -18,9 +16,9 @@ function resolveApiBaseUrl() {
 
 const API_BASE_URL = resolveApiBaseUrl();
 
-const POLL_INTERVAL_MS = 5000; // Atualização periódica a cada 5 segundos
+let sseSource = null;
 let pollTimer = null;
-let isFirstLoad = true;
+let previousTelemetry = null; // Armazena estado anterior para detecção de oscilação
 
 /**
  * Inicialização ao carregar o DOM
@@ -39,29 +37,88 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Primeira carga e início do polling
-  fetchLatestTelemetry();
+  // 1. Carga inicial dos dados históricos para o gráfico
   fetchHistoryTelemetry();
-  startPolling();
+
+  // 2. Inicia o canal de Streaming SSE de tempo real (< 10ms)
+  initLiveSseStream();
 });
 
 /**
- * Inicia o ciclo de polling contínuo não-bloqueante
+ * Inicializa a conexão persistente SSE (Server-Sent Events)
+ * Entrega telemetria instantaneamente assim que o ESP32 transmite
  */
-function startPolling() {
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(() => {
-    fetchLatestTelemetry();
-  }, POLL_INTERVAL_MS);
+function initLiveSseStream() {
+  if (sseSource) {
+    sseSource.close();
+    sseSource = null;
+  }
 
-  // Histórico atualiza a cada 15 segundos para economizar banda
-  setInterval(() => {
-    fetchHistoryTelemetry();
-  }, 15000);
+  const streamUrl = `${API_BASE_URL}/telemetry/stream`;
+  console.log('[EcoPulse SSE] Conectando ao canal em tempo real:', streamUrl);
+
+  try {
+    sseSource = new EventSource(streamUrl);
+
+    sseSource.onopen = () => {
+      console.log('[EcoPulse SSE] Canal em tempo real estabelecido.');
+      setConnectionStatus(true, 'Ao Vivo • Stream Ativo (< 10ms)');
+      stopFallbackPolling();
+    };
+
+    sseSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data && data.sensors) {
+          // Detecta oscilação em relação à leitura anterior e dispara animação visual
+          detectOscillations(data, previousTelemetry);
+          previousTelemetry = data;
+
+          // Atualiza cards da interface
+          updateUIWithTelemetry(data);
+
+          // Adiciona imediatamente ao gráfico sem esperar polling
+          if (typeof appendLiveChartPoint === 'function') {
+            appendLiveChartPoint(data);
+          }
+
+          setConnectionStatus(true, 'Ao Vivo • Stream Ativo (< 10ms)');
+        }
+      } catch (err) {
+        console.warn('[EcoPulse SSE] Erro ao decodificar frame SSE:', err);
+      }
+    };
+
+    sseSource.onerror = (err) => {
+      console.warn('[EcoPulse SSE] Conexão oscilou. Ativando polling de contingência...', err);
+      setConnectionStatus(false, 'Reconectando Stream...');
+      startFallbackPolling();
+    };
+  } catch (e) {
+    console.error('[EcoPulse SSE] Falha ao iniciar SSE. Usando polling.', e);
+    startFallbackPolling();
+  }
 }
 
 /**
- * Busca a leitura mais recente registrada no banco de dados
+ * Polling de contingência caso o SSE seja interrompido
+ */
+function startFallbackPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(() => {
+    fetchLatestTelemetry();
+  }, 2500); // Polling de alta frequência (2.5s)
+}
+
+function stopFallbackPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+/**
+ * Busca a leitura mais recente (usado na carga inicial ou fallback)
  */
 async function fetchLatestTelemetry() {
   try {
@@ -72,21 +129,20 @@ async function fetchLatestTelemetry() {
     if (!response.ok) throw new Error(`Status HTTP: ${response.status}`);
 
     const data = await response.json();
-
     if (data && data.status !== 'empty') {
+      detectOscillations(data, previousTelemetry);
+      previousTelemetry = data;
       updateUIWithTelemetry(data);
       setConnectionStatus(true);
-    } else {
-      setConnectionStatus(true, 'Aguardando 1º envio');
     }
   } catch (err) {
-    console.warn('[EcoPulse] Falha na sincronização da telemetria:', err.message);
+    console.warn('[EcoPulse] Falha na sincronização via polling:', err.message);
     setConnectionStatus(false);
   }
 }
 
 /**
- * Busca a série temporal para alimentar os gráficos
+ * Busca a série temporal inicial para o Chart.js
  */
 async function fetchHistoryTelemetry() {
   try {
@@ -106,10 +162,57 @@ async function fetchHistoryTelemetry() {
 }
 
 /**
- * Atualiza todos os elementos visuais do Dashboard com base na leitura
+ * Detecta oscilações em tempo real e dispara micro-animações visuais
+ */
+function detectOscillations(current, previous) {
+  if (!previous || !current) return;
+
+  const currSensors = current.sensors || current;
+  const prevSensors = previous.sensors || previous;
+
+  // 1. Oscilação de Temperatura
+  const tempDiff = Number(currSensors.temperature_c ?? 0) - Number(prevSensors.temperature_c ?? 0);
+  if (Math.abs(tempDiff) >= 0.1) {
+    triggerFlash('heroTemp', tempDiff > 0 ? 'value-flash-up' : 'value-flash-down');
+  }
+
+  // 2. Oscilação de Qualidade do Ar (MQ-135)
+  const aqiDiff = Number(currSensors.air_quality_ppm ?? 0) - Number(prevSensors.air_quality_ppm ?? 0);
+  if (Math.abs(aqiDiff) >= 2) {
+    triggerFlash('aqiPpm', aqiDiff > 0 ? 'value-flash-down' : 'value-flash-up');
+  }
+
+  // 3. Oscilação de Luz (LDR)
+  const lightDiff = Number(currSensors.luminosity_pct ?? 0) - Number(prevSensors.luminosity_pct ?? 0);
+  if (Math.abs(lightDiff) >= 1) {
+    triggerFlash('lightValue', lightDiff > 0 ? 'value-flash-up' : 'value-flash-down');
+  }
+
+  // 4. Mudança de Chuva
+  if (Boolean(currSensors.is_raining) !== Boolean(prevSensors.is_raining)) {
+    triggerFlash('rainStatusText', currSensors.is_raining ? 'value-flash-down' : 'value-flash-up');
+  }
+}
+
+/**
+ * Aplica classe de animação temporária em um elemento DOM
+ */
+function triggerFlash(elementId, className) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.classList.remove('value-flash-up', 'value-flash-down');
+  // Força reflow para reiniciar a animação CSS
+  void el.offsetWidth;
+  el.classList.add(className);
+  setTimeout(() => {
+    el.classList.remove(className);
+  }, 750);
+}
+
+/**
+ * Atualiza todos os elementos visuais do Dashboard
  */
 function updateUIWithTelemetry(data) {
-  // Extrai dados suportando tanto formato aninhado (sensors/diagnostics) quanto flat
   const s = data.sensors || data;
   const d = data.diagnostics || data;
 
@@ -131,7 +234,7 @@ function updateUIWithTelemetry(data) {
   setText('heroCondition', determineOverallCondition(temp, hum, isRaining, aqi));
   setText(
     'heroThermalSensation',
-    `Sensação Térmica de ${thermalSensation.toFixed(1)}°C • Máx/Mín calculada em tempo real`
+    `Sensação Térmica de ${thermalSensation.toFixed(1)}°C • Leitura Contínua ao Vivo`
   );
   setText('quickThermal', `${thermalSensation.toFixed(1)}°C`);
   setText('quickHumidity', `${Math.round(hum)}%`);
@@ -196,7 +299,7 @@ function updateUIWithTelemetry(data) {
 }
 
 /**
- * Atualiza os indicadores de Qualidade do Ar com classificação por faixas da OMS
+ * Atualiza os indicadores de Qualidade do Ar com faixas OMS
  */
 function updateAqiWidget(ppm) {
   const badge = document.getElementById('aqiBadge');
@@ -249,7 +352,7 @@ function updateAqiWidget(ppm) {
 }
 
 /**
- * Determina o resumo descritivo das condições climáticas
+ * Determina a condição geral
  */
 function determineOverallCondition(temp, hum, isRaining, aqi) {
   if (isRaining) return 'Chuva em Andamento';
@@ -261,15 +364,12 @@ function determineOverallCondition(temp, hum, isRaining, aqi) {
 }
 
 /**
- * Cálculo do Índice de Calor / Sensação Térmica (Fórmula de Steadman/Rothfusz)
+ * Cálculo do Heat Index
  */
 function calculateHeatIndex(tempC, humPct) {
-  if (tempC < 20) return tempC; // Heat index aplica-se primariamente a temperaturas amenas/quentes
-
-  const T = (tempC * 9) / 5 + 32; // Converte para Fahrenheit
+  if (tempC < 20) return tempC;
+  const T = (tempC * 9) / 5 + 32;
   const R = humPct;
-
-  // Aproximação do Heat Index em Fahrenheit
   let hiF =
     -42.379 +
     2.04901523 * T +
@@ -280,14 +380,12 @@ function calculateHeatIndex(tempC, humPct) {
     0.00122874 * T * T * R +
     0.00085282 * T * R * R -
     0.00000199 * T * T * R * R;
-
-  // Converte de volta para Celsius
   const hiC = ((hiF - 32) * 5) / 9;
   return isNaN(hiC) ? tempC : hiC;
 }
 
 /**
- * Cálculo do Ponto de Orvalho (Aproximação de Magnus-Tetens)
+ * Cálculo do Ponto de Orvalho
  */
 function calculateDewPoint(tempC, humPct) {
   const a = 17.27;
@@ -298,7 +396,7 @@ function calculateDewPoint(tempC, humPct) {
 }
 
 /**
- * Formata segundos de Uptime em formato legível (ex: 2h 15m)
+ * Formata Uptime
  */
 function formatUptime(seconds) {
   if (!seconds) return '1h 00m';
@@ -308,7 +406,7 @@ function formatUptime(seconds) {
 }
 
 /**
- * Atualiza o indicador de status da conexão na barra superior
+ * Atualiza status bar
  */
 function setConnectionStatus(isOnline, customLabel = null) {
   const indicator = document.getElementById('statusIndicator');
@@ -325,7 +423,7 @@ function setConnectionStatus(isOnline, customLabel = null) {
       dot.style.boxShadow = '0 0 8px var(--apple-green)';
     }
   } else {
-    label.textContent = 'Buscando API...';
+    label.textContent = customLabel || 'Buscando API...';
     label.style.color = 'var(--apple-yellow)';
     if (dot) {
       dot.style.backgroundColor = 'var(--apple-yellow)';
@@ -334,9 +432,6 @@ function setConnectionStatus(isOnline, customLabel = null) {
   }
 }
 
-/**
- * Utilitários auxiliares DOM
- */
 function setText(id, text) {
   const el = document.getElementById(id);
   if (el) el.textContent = text;
@@ -346,4 +441,3 @@ function setStyle(id, prop, value) {
   const el = document.getElementById(id);
   if (el) el.style[prop] = value;
 }
-

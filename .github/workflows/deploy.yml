@@ -1,0 +1,77 @@
+name: CI/CD EcoPulse - Test & Zero-Downtime Deploy AWS
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # =========================================================================
+  # 1. Pipeline de Integração Contínua (CI) - Testes Automatizados
+  # =========================================================================
+  test:
+    name: Backend Unit Tests & Linters
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do Repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Instalar Dependências do Backend
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Executar Testes com Pytest
+        env:
+          PYTHONPATH: backend
+        run: |
+          cd backend
+          pytest tests/ -v
+
+  # =========================================================================
+  # 2. Pipeline de Entrega Contínua (CD) - Deploy Rolling na AWS EC2
+  # =========================================================================
+  deploy:
+    name: Deploy em Nuvem (AWS EC2 + Docker Compose)
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Executar Deploy Remoto via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER || 'ubuntu' }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            echo "[CI/CD] Iniciando atualização contínua na AWS EC2..."
+            cd /home/ubuntu/pim2/ecopulse || cd ~/ecopulse
+            
+            # 1. Sincroniza branch principal
+            git fetch origin main
+            git reset --hard origin/main
+            
+            # 2. Aplica variáveis de ambiente secretas
+            cat <<EOF > infra/aws/.env
+            API_SECRET_KEY=${{ secrets.API_SECRET_KEY }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            EOF
+            
+            # 3. Atualiza os containers sem derrubar o banco (Zero-Downtime Rolling Update)
+            cd infra/aws
+            docker compose build api
+            docker compose up -d --no-deps api
+            docker compose restart webserver
+            
+            echo "[CI/CD] Deploy concluído com sucesso e serviços ativos!"

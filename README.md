@@ -4,7 +4,7 @@
 > **Curso:** Ciência da Computação — 2º Semestre  
 > **Instituição:** Universidade Paulista (UNIP)  
 > **Autor:** Wallace Vilela  
-> **Status:** Fase 4 Concluída — Firmware, Ingestão HTTP, Persistência SQL e Infraestrutura AWS
+> **Status:** Fase 5 Concluída — Firmware Reativo, Ingestão HTTP, Persistência SQL, Streaming SSE e Dashboard Apple iOS
 
 ---
 
@@ -121,9 +121,13 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
   - Criação do receptor FastAPI com validação estrita Pydantic v2.
   - Implementação do banco relacional com SQLAlchemy (SQLite local / PostgreSQL RDS).
   - Estruturação dos scripts e arquitetura para deploy na AWS (`infra/aws/`).
-- [ ] **Etapa 5 — Dashboard Frontend e Deploy Público:**
-  - Interface SPA moderna para visualização em tempo real e gráficos históricos.
-  - Publicação da infraestrutura na nuvem AWS (EC2/RDS/S3) com domínio público.
+- [x] **Etapa 5 — Dashboard Frontend e Streaming em Tempo Real:**
+  - Interface SPA no design system Apple (iOS Weather / Bento Grid) com Glassmorphism.
+  - Streaming Server-Sent Events (SSE) com latência inferior a 15ms e animações de oscilação.
+  - Séries temporais interativas (Chart.js) e geolocalização sensorial (Leaflet.js).
+- [ ] **Etapa 6 — Deploy e Publicação em Nuvem (AWS EC2 / Nginx):**
+  - Publicação da infraestrutura unificada na nuvem AWS via esteira CI/CD (GitHub Actions).
+  - Redação da monografia acadêmica do PIM II conforme normas ABNT da UNIP.
 
 ---
 

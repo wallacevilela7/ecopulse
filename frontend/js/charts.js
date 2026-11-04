@@ -181,7 +181,10 @@ function updateTelemetryChartData(records) {
     return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   });
 
-  const values = records.map((r) => r[cfg.field]);
+  const values = records.map((r) => {
+    const s = r.sensors || r;
+    return s[cfg.field] !== undefined ? s[cfg.field] : null;
+  });
 
   chartInstance.data.labels = labels;
   chartInstance.data.datasets[0].label = cfg.label;
@@ -232,3 +235,4 @@ function setupSegmentedControls() {
     });
   });
 }
+

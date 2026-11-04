@@ -3,10 +3,20 @@
  * Integração assíncrona com FastAPI, cálculos meteorológicos e polling resiliente
  */
 
-// Configuração da API: utiliza URL relativa quando servido por Nginx ou fallback para localhost:8000
-const API_BASE_URL = window.location.origin.includes('http')
-  ? `${window.location.origin}/api/v1`
-  : 'http://localhost:8000/api/v1';
+// Configuração resiliente da API:
+// 1. Se estiver na AWS ou Nginx (porta 80/443), usa rota relativa origin/api/v1
+// 2. Se estiver em Live Server (porta 5500, 3000 etc.) ou file://, direciona para http://localhost:8000/api/v1
+function resolveApiBaseUrl() {
+  const origin = window.location.origin || '';
+  const port = window.location.port || '';
+  
+  if (!origin.startsWith('http') || (port !== '' && port !== '80' && port !== '443' && port !== '8000')) {
+    return 'http://localhost:8000/api/v1';
+  }
+  return `${origin}/api/v1`;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 const POLL_INTERVAL_MS = 5000; // Atualização periódica a cada 5 segundos
 let pollTimer = null;
@@ -99,14 +109,18 @@ async function fetchHistoryTelemetry() {
  * Atualiza todos os elementos visuais do Dashboard com base na leitura
  */
 function updateUIWithTelemetry(data) {
-  const temp = Number(data.temperature_c ?? 0);
-  const hum = Number(data.humidity_pct ?? 0);
-  const press = Number(data.pressure_hpa ?? 0);
-  const alt = Number(data.altitude_m ?? 0);
-  const aqi = Number(data.air_quality_ppm ?? 0);
-  const light = Number(data.luminosity_pct ?? 0);
-  const rainIntensity = Number(data.rain_intensity_pct ?? 0);
-  const isRaining = Boolean(data.is_raining);
+  // Extrai dados suportando tanto formato aninhado (sensors/diagnostics) quanto flat
+  const s = data.sensors || data;
+  const d = data.diagnostics || data;
+
+  const temp = Number(s.temperature_c ?? 0);
+  const hum = Number(s.humidity_pct ?? 0);
+  const press = Number(s.pressure_hpa ?? 0);
+  const alt = Number(s.altitude_m ?? 0);
+  const aqi = Number(s.air_quality_ppm ?? 0);
+  const light = Number(s.luminosity_pct ?? 0);
+  const rainIntensity = Number(s.rain_intensity_pct ?? 0);
+  const isRaining = Boolean(s.is_raining);
 
   // Cálculos Meteorológicos Interdisciplinares
   const thermalSensation = calculateHeatIndex(temp, hum);
@@ -175,9 +189,9 @@ function updateUIWithTelemetry(data) {
   );
 
   // 7. Widget: Diagnóstico ESP32
-  setText('diagRssi', data.wifi_rssi_dbm ? `${data.wifi_rssi_dbm} dBm` : '-54 dBm');
-  setText('diagHeap', data.free_heap_bytes ? `${Math.round(data.free_heap_bytes / 1024)} KB` : '198 KB');
-  setText('diagUptime', formatUptime(data.uptime_seconds || 120));
+  setText('diagRssi', d.wifi_rssi_dbm ? `${d.wifi_rssi_dbm} dBm` : '-52 dBm');
+  setText('diagHeap', d.free_heap_bytes ? `${Math.round(d.free_heap_bytes / 1024)} KB` : '198 KB');
+  setText('diagUptime', formatUptime(d.uptime_seconds || 120));
   setText('diagDevice', data.device_id || 'ESP32-WROOM');
 }
 
@@ -332,3 +346,4 @@ function setStyle(id, prop, value) {
   const el = document.getElementById(id);
   if (el) el.style[prop] = value;
 }
+

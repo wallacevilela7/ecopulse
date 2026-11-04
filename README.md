@@ -24,49 +24,75 @@ Consulte o inventário técnico completo em [**TECH_STACK.md**](file:///home/wvs
 
 ```
 ecopulse/
+├── .github/                               # Automação e Integração Contínua
+│   └── workflows/
+│       └── deploy.yml                     # Pipeline CI/CD (Pytest + Deploy Zero-Downtime AWS EC2)
+│
 ├── docs/                                  # Documentação formal de engenharia (PIM II)
-│   ├── arquitetura.md                     # Visão sistêmica e camadas
-│   ├── diagrama_classes.md                # Diagramas de classes UML
+│   ├── arquitetura.md                     # Visão sistêmica e camadas arquiteturais
+│   ├── fluxo-dados.md                     # Topologia em nuvem, ciclo de dados e isolamento do BD
+│   ├── diagrama_classes.md                # Diagramas de classes UML estruturais
 │   ├── diagrama_sequencia.md              # Sequência temporal e fluxos de telemetria
-│   ├── modelo_dados.md                    # Modelagem relacional e índices
-│   ├── contrato_api.md                    # Especificação OpenAPI/REST
+│   ├── modelo_dados.md                    # Modelagem relacional e índices do PostgreSQL/SQLite
+│   ├── contrato_api.md                    # Especificação OpenAPI/REST e schemas
 │   ├── relatorio_tecnico_integracao_telemetria.md # Relatório técnico de bancada e diagnóstico
 │   ├── implementacao_infraestrutura_cloud_aws.md  # Arquitetura e dimensionamento AWS
-│   └── contratos/                         # Payloads JSON versionados
+│   ├── assets/                            # Imagens e esquemáticos da documentação
+│   └── contratos/                         # Payloads JSON versionados de exemplo
 │
-├── hardware/                              # Engenharia de hardware e protoboard
-│   ├── README.md                          # Lista de materiais (BOM)
-│   ├── manual_montagem_ecopulse.pdf       # Livreto ilustrado de bancada
-│   ├── guia_montagem_circuito.md          # Roteiro de montagem detalhado
-│   └── calculo_divisores_tensao.md        # Dimensionamento do divisor resistivo do MQ-135
+├── hardware/                              # Engenharia de hardware, circuito e protoboard
+│   ├── README.md                          # Lista detalhada de materiais (BOM)
+│   ├── pinout_conexoes.md                 # Tabela e mapeamento completo de pinos do ESP32
+│   ├── guia_montagem_circuito.md          # Roteiro passo a passo de montagem em bancada
+│   ├── calculo_divisores_tensao.md        # Dimensionamento do divisor resistivo do MQ-135
+│   ├── manual_montagem_ecopulse.pdf       # Livreto ilustrado de bancada formatado para impressão
+│   ├── manual_montagem_ecopulse.html      # Fonte HTML do livreto com diagramas visuais
+│   ├── generate_booklet.py                # Script de compilação do livreto técnico
+│   ├── generate_svg_schematic.py          # Gerador vetorial SVG do esquemático elétrico
+│   └── assets/                            # Renderizações e diagramas de protoboard MB102
 │
-├── firmware/                              # Firmware C++ para ESP32
-│   ├── include/config.h.example           # Template de credenciais de rede e API
-│   └── src/main.cpp                       # Código embarcado (sensores, webserver, HTTPClient)
+├── firmware/                              # Firmware C++ para ESP32 (Arduino / PlatformIO)
+│   ├── README.md                          # Instruções de compilação e upload
+│   ├── include/
+│   │   └── config.h.example               # Template de credenciais de rede Wi-Fi e API
+│   ├── platformio.ini.example             # Configuração de build para PlatformIO
+│   └── src/
+│       └── main.cpp                       # Código embarcado (sensores, WebServer, Telnet e HTTP reativo)
 │
-├── backend/                               # API RESTful (FastAPI + SQLAlchemy)
+├── backend/                               # API RESTful e Streaming (FastAPI + SQLAlchemy)
+│   ├── README.md                          # Documentação e execução local da API
 │   ├── app/
-│   │   ├── main.py                        # Rotas (/telemetry, /latest, /history, /health)
-│   │   ├── schemas.py                     # Modelos de validação Pydantic v2
+│   │   ├── main.py                        # Endpoints REST e canal de Streaming SSE em tempo real
+│   │   ├── schemas.py                     # Modelos de validação estrita Pydantic v2
 │   │   ├── models.py                      # Entidades relacionais SQLAlchemy
 │   │   └── database.py                    # Engine com fallback resiliente SQLite/Postgres
-│   ├── tests/test_telemetry.py            # Testes unitários automatizados (Pytest)
-│   ├── requirements.txt                   # Dependências Python
+│   ├── tests/
+│   │   └── test_telemetry.py              # Testes unitários automatizados (Pytest)
+│   ├── requirements.txt                   # Dependências Python (FastAPI, SQLAlchemy, Uvicorn, etc.)
 │   └── .env.example                       # Variáveis de ambiente de referência
 │
-├── infra/                                 # Infraestrutura de deploy e nuvem
-│   └── aws/                               # Receitas e scripts para AWS
-│       ├── Dockerfile                     # Imagem Docker da API
-│       ├── docker-compose.yml             # Orquestração da API e PostgreSQL
-│       ├── setup_ec2.sh                   # Script de provisionamento da instância EC2
-│       ├── README.md                      # Guia de implantação em nuvem
-│       └── private/                       # [IGNORADO] Chaves SSH .pem e credenciais
+├── frontend/                              # Dashboard Web SPA (Design System Apple iOS)
+│   ├── README.md                          # Especificação de UX/UI e componentes visuais
+│   ├── index.html                         # Interface SPA semântica com Bento Grid
+│   ├── css/
+│   │   └── styles.css                     # Glassmorphism, design tokens Apple e micro-animações
+│   └── js/
+│       ├── app.js                         # Orquestrador assíncrono, receptor SSE e cálculos
+│       ├── charts.js                      # Gráficos de séries temporais interativos (Chart.js)
+│       └── map.js                         # Geolocalização e raio sensorial (Leaflet.js)
 │
-├── frontend/                              # Dashboard Web (HTML5/CSS/JS)
+├── infra/                                 # Infraestrutura como código e deploy em nuvem
+│   └── aws/
+│       ├── Dockerfile                     # Imagem Docker otimizada da API FastAPI
+│       ├── docker-compose.yml             # Orquestração unificada (Nginx, API e PostgreSQL)
+│       ├── nginx.conf                     # Reverse proxy, compressão Gzip e canal SSE
+│       ├── setup_ec2.sh                   # Script de provisionamento da instância EC2
+│       └── README.md                      # Guia operacional de implantação na nuvem
+│
 ├── TECH_STACK.md                          # Inventário e especificações técnicas de todo o projeto
-├── .gitignore                             # Filtro de arquivos locais e segredos
-├── LICENSE                                # Licença MIT
-└── README.md                              # Este documento
+├── LICENSE                                # Licença de código aberto MIT
+├── .gitignore                             # Filtro de segredos e arquivos locais
+└── README.md                              # Documento mestre do projeto
 ```
 
 ---

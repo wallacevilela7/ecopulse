@@ -1,49 +1,30 @@
-# Backend API - Planejamento e Especificação
+# EcoPulse Backend — Dual-Pipeline (Hot Path & Cold Path)
 
-Este diretório hospedará a API RESTful da estação **EcoPulse**, responsável por receber a telemetria do ESP32, persistir os registros em banco de dados e fornecer dados agregados para o frontend.
-
----
-
-## 1. Stack Tecnológica Planejada
-
-* **Linguagem:** Python 3.10+
-* **Framework Web:** FastAPI (alta performance, tipagem estática e OpenAPI/Swagger nativo)
-* **Servidor ASGI:** Uvicorn
-* **Validação e Tipagem:** Pydantic v2
-* **Persistência / ORM:** SQLAlchemy / asyncpg ou Psycopg2
-* **Banco de Dados:** PostgreSQL (séries temporais)
-* **Testes:** Pytest
+API em **FastAPI** e **SQLAlchemy 2.0** projetada para conciliar exibição em tempo real (`< 15ms`) com armazenamento otimizado no **PostgreSQL**, em conformidade com as recomendações da **WMO-No. 8** e do **INMET**.
 
 ---
 
-## 2. Estrutura de Diretórios Planejada
+## 1. Arquitetura Dual-Pipeline
 
-```
-backend/
-├── app/
-│   ├── main.py              # Ponto de entrada e configuração do FastAPI
-│   ├── config.py            # Carregamento de variáveis de ambiente (.env)
-│   ├── database.py          # Gerenciamento de conexões e sessões do banco
-│   ├── models.py            # Modelos ORM (tabelas do banco de dados)
-│   ├── schemas.py           # DTOs de validação de entrada/saída (Pydantic)
-│   ├── services/            # Camada de regras de negócio (cálculos e alertas)
-│   │   ├── weather_math.py  # Fórmulas meteorológicas (Sensação térmica, orvalho)
-│   │   ├── alert_engine.py  # Regras de detecção de eventos meteorológicos críticos
-│   │   └── geometry.py      # Cálculos de raio e distância geográfica
-│   └── routers/             # Endpoints REST segregados por domínio
-│       ├── telemetry.py     # Rotas de ingestão e histórico de sensores
-│       └── alerts.py        # Rotas de gerenciamento de alertas
-├── infra/                   # Scripts de Docker, Nginx e deploy
-├── tests/                   # Testes unitários e de integração
-├── requirements.txt         # Dependências do projeto
-└── .env.example             # Variáveis de ambiente modelo
+1. **Hot Path (Memória RAM + Streaming SSE):**
+   * Recebe leituras do ESP32 a cada 2,5 segundos (`POST /api/v1/telemetry`).
+   * Atualiza o estado instantâneo em RAM (`HotColdTelemetryEngine`) e faz broadcast via **Server-Sent Events** (`GET /api/v1/telemetry/stream`).
+   * **Zero I/O de disco** nos ciclos intermediários.
+2. **Cold Path (Persistência Inteligente no PostgreSQL):**
+   * **Janela Temporal de 5 Minutos (`WINDOW_5M`):** Consolida média, mínima e máxima na tabela `tb_telemetry_aggregated_5m`, reduzindo o volume de escrita em **99,17%**.
+   * **Detector de Deadband (`DEADBAND_EVENT`):** Mudanças abruptas (início/fim de chuva, queda barométrica $\ge 2.0\text{ hPa}$, salto de gases $\ge 50\text{ PPM}$ ou variação térmica $\ge 1.5^\circ\text{C}$) disparam gravação imediata em `tb_telemetry_events` e snapshot na série temporal.
+
+---
+
+## 2. Como Executar e Testar
+
+```bash
+cd backend
+source .venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
----
-
-## 3. Próximos Passos (Construção Conjunta Passo a Passo)
-
-1. [ ] Configuração do ambiente virtual Python (`.venv`) e instalação de dependências mínimas.
-2. [ ] Criação dos schemas Pydantic baseados no contrato [`docs/contratos/payload_exemplo.json`](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/docs/contratos/payload_exemplo.json).
-3. [ ] Implementação das funções matemáticas puras de meteorologia e testes com Pytest.
-4. [ ] Implementação dos endpoints e conexão com o banco de dados.
+Executar a suíte de testes automatizados:
+```bash
+PYTHONPATH=. pytest tests/ -v
+```

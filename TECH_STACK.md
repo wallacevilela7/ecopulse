@@ -1,72 +1,56 @@
-# Stack Tecnológica e Especificações do Projeto (EcoPulse)
+# Stack Tecnológica e Especificações do Projeto (EcoPulse v2.0)
 
 **Projeto Integrado Multidisciplinar II (PIM II - UNIP)**  
-**Documento de Referência Técnica Global**
+**Documento de Referência Técnica Global — Arquitetura Hot/Cold Path**
 
 ---
 
 ## 1. Camada de Borda (Hardware & Firmware)
 
-* **Microcontrolador:** ESP32 DevKit V1 (30 pinos)
-  * *CPU:* Xtensa Dual-Core 32-bit LX6 (240 MHz)
-  * *Memória:* 520 KB SRAM, 4 MB Flash
-  * *Conectividade:* Wi-Fi 802.11 b/g/n (2.4 GHz) + Bluetooth v4.2 BR/EDR e BLE
-  * *ADC:* Bloco ADC1 exclusivo de 12 bits (GPIOs 32, 34, 35) para coexistência com rádio Wi-Fi
+* **Microcontrolador:** ESP32 DevKit V1 (30 pinos, Dual-Core Xtensa LX6 240 MHz, 520 KB SRAM)
+* **ADC:** Bloco ADC1 exclusivo de 12 bits (GPIOs 32, 34, 35) operando simultaneamente ao rádio Wi-Fi 2.4 GHz
 * **Sensores Integrados:**
-  * `DHT22 (AM2302)`: Termo-higrômetro digital (Faixa: -40 a 80 °C / 0 a 100% UR) no GPIO 4
-  * `BMP280`: Barômetro/Altimétrico I2C Bosch (Faixa: 300 a 1100 hPa) no GPIO 21 (SDA) e 22 (SCL)
-  * `MQ-135`: Sensor de gases e qualidade do ar no GPIO 32 (com divisor resistivo 1kΩ/2kΩ, 5V -> máx 3.33V)
-  * `LDR 5mm`: Fotossensor analógico de luminosidade no GPIO 35
-  * `Pluviômetro LM393 + MH-RD`: Sensor analógico de precipitação no GPIO 34
-* **Alimentação:** Módulo de fonte para protoboard MB102 (5.0V exclusivo para MQ-135; 3.3V para barramentos do ESP32 e demais sensores; malha de GND comum)
-* **Linguagem & Framework:** C++ (Arduino Core para ESP32)
-* **Bibliotecas Embarcadas:** `WiFi.h`, `HTTPClient.h`, `WebServer.h`, `Wire.h`, `DHT.h`, `Adafruit_BMP280.h`
+  * `DHT22 (AM2302)`: Termo-higrômetro digital (GPIO 4)
+  * `BMP280`: Barômetro e altímetro I2C (GPIO 21 SDA / GPIO 22 SCL)
+  * `MQ-135`: Sensor de gases e qualidade do ar (GPIO 32 com divisor resistivo 1kΩ / 2kΩ)
+  * `LDR 5mm`: Fotoresistor analógico de luminosidade (GPIO 35)
+  * `LM393 + Placa MH-RD`: Sensor analógico de precipitação pluvial (GPIO 34)
+* **Alimentação:** Fonte regulada MB102 (5.0V para aquecedor do MQ-135; 3.3V para ESP32 e demais sensores; GND comum)
 
 ---
 
-## 2. Camada de Backend & Ingestão
+## 2. Camada de Backend & Dual-Pipeline (Hot/Cold Path)
 
-* **Linguagem:** Python 3.14 / 3.11+
-* **Framework Web:** FastAPI (ASGI framework moderno de alta performance)
-* **Servidor ASGI:** Uvicorn (com suporte a uvloop e httptools)
-* **Validação de Dados:** Pydantic v2 (validação estrita de contratos e schemas em tempo de execução)
-* **ORM & Acesso a Dados:** SQLAlchemy 2.0 (abstração relacional com chaveamento transparente SQLite/PostgreSQL)
-* **Segurança:** Autenticação via token no cabeçalho HTTP (`X-API-Key`) e CORS liberado para o dashboard
-* **Testes Automatizados:** Pytest com HTTPX / TestClient
-
----
-
-## 3. Camada de Banco de Dados (Persistência)
-
-* **Ambiente de Desenvolvimento Local:** SQLite 3 (arquivo local `ecopulse.db`, zero dependências externas)
-* **Ambiente de Produção em Nuvem:** AWS RDS PostgreSQL 16
-  * *Instância:* `db.t4g.micro` ou `db.t3.micro` (AWS Free Tier)
-  * *vCPU:* 2 vCPUs (t4g ARM Graviton2) ou 2 vCPUs (t3 x86)
-  * *Memória:* 1 GiB RAM
-  * *Armazenamento:* 20 GiB SSD gp3 com backups automatizados
-  * *Indexação:* Índice composto B-Tree em `(device_id, recorded_at DESC)` para queries em O(1)
+* **Linguagem & Runtime:** Python 3.11+
+* **Framework Web & ASGI:** FastAPI + Uvicorn
+* **Validação Estrita:** Pydantic v2
+* **Hot Path (Caminho Quente — Tempo Real):**
+  * Cache de estado instantâneo e ring-buffer em memória RAM (`HotColdTelemetryEngine`)
+  * Barramento Pub/Sub assíncrono (`asyncio.Queue`) com entrega via **Server-Sent Events (SSE)** em `< 15ms`
+  * Zero operações de escrita em disco nos ciclos intermediários
+* **Cold Path (Caminho Frio — Persistência Inteligente WMO-No. 8 / INMET):**
+  * Consolidação estatística a cada **5 minutos** (média, mínima e máxima) na tabela `tb_telemetry_aggregated_5m`
+  * Detector de **Deadband / Exceção Climática** (chuva súbita, queda barométrica $\ge 2\text{ hPa}$, pico de gases $\ge 50\text{ PPM}$) com persistência imediata em `tb_telemetry_events`
+  * Redução de **99,17% de I/O de disco** comparado à gravação ingênua por tick
+* **ORM & Testes:** SQLAlchemy 2.0 + Pytest
 
 ---
 
-## 4. Camada de Nuvem & Infraestrutura (AWS)
+## 3. Camada de Banco de Dados & Infraestrutura Cloud (AWS EC2)
 
-* **Servidor de Aplicação / Deploy:** AWS EC2 ou AWS App Runner
-  * *Opção EC2:* `t2.micro` (ou `t3.micro` / `t4g.small` conforme região)
-    * *vCPU:* 1 vCPU (Intel Xeon 3.3 GHz)
-    * *Memória:* 1 GiB RAM
-    * *Rede:* Até 5 Gbps (EBS-optimized)
-    * *Armazenamento de Boot:* 30 GiB EBS gp3 (Free Tier)
-    * *Sistema Operacional:* Ubuntu Server 24.04 LTS ou Amazon Linux 2023
-  * *Opção App Runner:* Container gerenciado sem necessidade de gerenciar instâncias de SO
-* **Hospedagem Frontend:** AWS S3 (Bucket configurado para Static Website Hosting)
-* **Distribuição CDN & SSL:** AWS CloudFront com certificado TLS 1.3 gratuito via AWS Certificate Manager (ACM)
-* **Segurança de Rede:** AWS Security Groups restringindo porta 5432 do PostgreSQL apenas ao IP do backend
+* **Topologia Unificada Single-Host (AWS Free Tier):** Instância EC2 `t2.micro` / `t3.micro` (Ubuntu Server LTS) orquestrada via **Docker Compose** em rede bridge isolada (`ecopulse_net`):
+  1. **`webserver` (Nginx Alpine):** Porta pública 80; serve o Frontend com Gzip e faz proxy reverso para `/api/` com `proxy_buffering off` para SSE.
+  2. **`api` (FastAPI Container):** Porta interna 8000 (não exposta externamente).
+  3. **`db` (PostgreSQL 16 Alpine):** Porta interna 5432 (totalmente isolada da internet) com volume persistente `postgres_data`.
+* **Fallback Local de Bancada:** SQLite 3 automático quando executado fora do Docker sem PostgreSQL ativo.
+* **CI/CD Zero-Downtime:** GitHub Actions (`.github/workflows/deploy.yml`) executando Pytest e *rolling update* via SSH.
 
 ---
 
-## 5. Camada de Frontend (Dashboard)
+## 4. Camada de Frontend (Apple iOS Weather UI)
 
-* **Arquitetura:** Single Page Application (SPA) estática
-* **Tecnologias:** HTML5 Semântico, Vanilla CSS moderno (Dark Mode, Glassmorphism, CSS Grid/Flexbox) e JavaScript ES6+
-* **Gráficos & Séries Temporais:** Chart.js / Canvas API (temperatura, umidade, pressão e qualidade do ar)
-* **Atualização:** Polling assíncrono via `fetch()` consumindo `/api/v1/telemetry/latest` e `/api/v1/telemetry/history`
+* **Arquitetura:** Single Page Application (SPA) leve em HTML5, CSS3 Vanilla e JavaScript ES6+
+* **Design System:** Inspirado no aplicativo nativo **Clima (Weather) do iOS**:
+  * **1ª Dobra (Condições Atuais + Peek):** Hero centralizado flutuante (`22°`), Banner de Alertas (`Storm & More` style), faixa horizontal de `Condições` e *peek* do card de Amplitude Térmica com barras gradientes laranjas.
+  * **2ª Dobra (Dashboard Completo ao rolar):** Bento Grid dos 5 sensores físicos, Sensação Térmica, Ponto de Orvalho, Gráfico Chart.js, Mapa Leaflet (Raio 450m) e telemetria do pipeline Hot/Cold Path.
+  * **Barra Inferior Flutuante:** Navegação rápida entre Topo, Dashboard Completo e Mapa.

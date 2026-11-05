@@ -27,6 +27,7 @@ services:
       - APP_ENV=production
       - API_PORT=8000
       - API_SECRET_KEY=${API_SECRET_KEY:-chave-secreta-estacao-unip-2026}
+      - COLD_PATH_WINDOW_SECONDS=${COLD_PATH_WINDOW_SECONDS:-300}
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/ecopulse_db
     depends_on:
       - db

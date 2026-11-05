@@ -4,19 +4,20 @@
 > **Curso:** Ciência da Computação — 2º Semestre  
 > **Instituição:** Universidade Paulista (UNIP)  
 > **Autor:** Wallace Vilela  
-> **Status:** Fase 5 Concluída — Firmware Reativo, Ingestão HTTP, Persistência SQL, Streaming SSE e Dashboard Apple iOS
+> **Status:** Fase 5 Concluída — Dual-Pipeline Hot/Cold Path (WMO-No. 8 / INMET), PostgreSQL e Interface Apple iOS Weather
 
 ---
 
 ## 1. Visão Geral do Projeto
 
-O **EcoPulse** é um sistema computacional IoT para monitoramento micrometeorológico e qualidade do ar em tempo real. O ecossistema abrange:
-1. **Nó de Borda (Edge):** ESP32 com cluster de 5 sensores físicos operando no bloco ADC1.
-2. **Ingestão & Backend:** API RESTful em Python (FastAPI) com validação estrita (Pydantic) e autenticação `X-API-Key`.
-3. **Persistência:** Camada ORM com SQLAlchemy para séries temporais (compatibilidade dual: SQLite local e AWS RDS PostgreSQL).
-4. **Infraestrutura em Nuvem (AWS):** Arquitetura conteinerizada (Docker Compose / EC2 `t2.micro`), banco RDS gerenciado e distribuição global do dashboard via S3 + CloudFront (HTTPS).
+O **EcoPulse** é um ecossistema computacional IoT para monitoramento micrometeorológico e qualidade do ar em tempo real:
+1. **Nó de Borda (Edge):** ESP32 com cluster de 5 sensores físicos operando no bloco ADC1 (compatível com rádio Wi-Fi).
+2. **Hot Path (Tempo Real):** Ingestão em memória RAM no FastAPI e transmissão instantânea via **Server-Sent Events (SSE)** com latência `< 15ms` e zero I/O de disco.
+3. **Cold Path (Persistência Inteligente WMO-No. 8 / INMET):** Consolidação estatística a cada **5 minutos** (média, mínima e máxima) e disparo imediato por **Deadband** (exceções climáticas) no **PostgreSQL**, reduzindo em **99,17%** o volume de escrita em disco.
+4. **Interface Web (Apple iOS Weather):** Primeira dobra dedicada às condições atuais, alertas e faixa horária com *peek* convidativo para rolar até o Dashboard Analítico Completo (Bento Grid, Chart.js e Mapa Leaflet).
+5. **Infraestrutura Cloud (AWS EC2):** Topologia unificada Single-Host com Docker Compose (Nginx Reverse Proxy + FastAPI + PostgreSQL isolado) e CI/CD Zero-Downtime via GitHub Actions.
 
-Consulte o inventário técnico completo em [**TECH_STACK.md**](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/TECH_STACK.md).
+Consulte o inventário técnico completo em [**TECH_STACK.md**](file:///home/wvs/Documents/pim2/ecopulse/TECH_STACK.md).
 
 ---
 
@@ -32,15 +33,13 @@ ecopulse/
 │   ├── arquitetura.md                     # Arquitetura Dual-Pipeline (Hot/Cold Path e PostgreSQL)
 │   ├── fluxo-dados.md                     # Topologia em nuvem, ciclo de dados e isolamento do BD
 │   ├── referencias_tecnicas_abnt.pdf      # Documento técnico ABNT com fundamentação e normas WMO/INMET
-│   ├── gerar_referencias_abnt.py          # Script de compilação do documento ABNT
+│   ├── gerar_referencias_abnt.py          # Script compilador do documento ABNT
 │   ├── diagrama_classes.md                # Diagramas de classes UML estruturais
-│   ├── diagrama_sequencia.md              # Sequência temporal e fluxos de telemetria
-│   ├── modelo_dados.md                    # Modelagem relacional e índices do PostgreSQL/SQLite
-│   ├── contrato_api.md                    # Especificação OpenAPI/REST e schemas
+│   ├── diagrama_sequencia.md              # Sequência temporal Hot Path SSE vs Cold Path BD
+│   ├── modelo_dados.md                    # Modelagem relacional (tb_telemetry_aggregated_5m e events)
+│   ├── contrato_api.md                    # Especificação OpenAPI/REST e SSE
 │   ├── relatorio_tecnico_integracao_telemetria.md # Relatório técnico de bancada e diagnóstico
-│   ├── implementacao_infraestrutura_cloud_aws.md  # Arquitetura e dimensionamento AWS
-│   ├── archive/                           # [ARQUIVO] Versões arquiteturais legadas (v1)
-│   ├── assets/                            # Imagens e esquemáticos da documentação
+│   ├── archive/                           # [ARQUIVO] Versões arquiteturais legadas (v0 e v1)
 │   └── contratos/                         # Payloads JSON versionados de exemplo
 │
 ├── hardware/                              # Engenharia de hardware, circuito e protoboard
@@ -49,7 +48,6 @@ ecopulse/
 │   ├── guia_montagem_circuito.md          # Roteiro passo a passo de montagem em bancada
 │   ├── calculo_divisores_tensao.md        # Dimensionamento do divisor resistivo do MQ-135
 │   ├── manual_montagem_ecopulse.pdf       # Livreto ilustrado de bancada formatado para impressão
-│   ├── manual_montagem_ecopulse.html      # Fonte HTML do livreto com diagramas visuais
 │   ├── generate_booklet.py                # Script de compilação do livreto técnico
 │   ├── generate_svg_schematic.py          # Gerador vetorial SVG do esquemático elétrico
 │   └── assets/                            # Renderizações e diagramas de protoboard MB102
@@ -62,25 +60,25 @@ ecopulse/
 │   └── src/
 │       └── main.cpp                       # Código embarcado (sensores, WebServer, Telnet e HTTP reativo)
 │
-├── backend/                               # API RESTful e Streaming (FastAPI + SQLAlchemy)
+├── backend/                               # API Dual-Pipeline (FastAPI + SQLAlchemy)
 │   ├── README.md                          # Documentação e execução local da API
 │   ├── app/
-│   │   ├── main.py                        # Endpoints REST e canal de Streaming SSE em tempo real
+│   │   ├── main.py                        # Motor Hot/Cold Path, rotas REST e canal SSE
 │   │   ├── schemas.py                     # Modelos de validação estrita Pydantic v2
-│   │   ├── models.py                      # Entidades relacionais SQLAlchemy
-│   │   └── database.py                    # Engine com fallback resiliente SQLite/Postgres
+│   │   ├── models.py                      # Tabelas tb_telemetry_aggregated_5m e tb_telemetry_events
+│   │   └── database.py                    # Engine com fallback resiliente PostgreSQL/SQLite
 │   ├── tests/
-│   │   └── test_telemetry.py              # Testes unitários automatizados (Pytest)
-│   ├── requirements.txt                   # Dependências Python (FastAPI, SQLAlchemy, Uvicorn, etc.)
+│   │   └── test_telemetry.py              # Testes unitários automatizados do Hot/Cold Path (Pytest)
+│   ├── requirements.txt                   # Dependências Python
 │   └── .env.example                       # Variáveis de ambiente de referência
 │
-├── frontend/                              # Dashboard Web SPA (Design System Apple iOS)
-│   ├── README.md                          # Especificação de UX/UI e componentes visuais
-│   ├── index.html                         # Interface SPA semântica com Bento Grid
+├── frontend/                              # Interface Web SPA (Design System Apple iOS Weather)
+│   ├── README.md                          # Especificação de UX/UI (1ª Dobra + Peek + 2ª Dobra)
+│   ├── index.html                         # Marcação semântica responsiva
 │   ├── css/
-│   │   └── styles.css                     # Glassmorphism, design tokens Apple e micro-animações
+│   │   └── styles.css                     # Estética iOS Weather, barras de amplitude e Bento Grid
 │   └── js/
-│       ├── app.js                         # Orquestrador assíncrono, receptor SSE e cálculos
+│       ├── app.js                         # Receptor SSE, faixas horárias, alertas e cálculos
 │       ├── charts.js                      # Gráficos de séries temporais interativos (Chart.js)
 │       └── map.js                         # Geolocalização e raio sensorial (Leaflet.js)
 │
@@ -116,7 +114,7 @@ Todos os sensores analógicos operam estritamente no bloco **ADC1** do ESP32 par
 
 ## 4. Como Executar o Projeto Localmente
 
-### 4.1. Backend (FastAPI + Banco de Dados)
+### 4.1. Backend (FastAPI Hot/Cold Path)
 ```bash
 cd backend
 python3 -m venv .venv
@@ -125,41 +123,27 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 * **Documentação Swagger interativa:** `http://localhost:8000/docs`
-* **Testes unitários:** `PYTHONPATH=. pytest tests/`
+* **Testes unitários:** `PYTHONPATH=. pytest tests/ -v`
 
 ### 4.2. Firmware (ESP32)
 1. Crie seu arquivo `firmware/include/config.h` a partir do `config.h.example`.
 2. Configure seu SSID, senha de Wi-Fi e o IP do computador na variável `API_URL`.
 3. Suba o código `firmware/src/main.cpp` para o ESP32 via Arduino IDE ou PlatformIO.
-4. O ESP32 iniciará a transmissão periódica para o Backend a cada 10 segundos.
+4. O ESP32 transmitirá ao Hot Path a cada 2,5 segundos (ou imediatamente em eventos de oscilação).
 
 ---
 
 ## 5. Diário de Bordo e Roadmap de Evolução
 
-- [x] **Etapa 1 — Especificações Técnicas e Modelagem UML:**
-  - Definição da arquitetura e cálculos dos divisores de tensão.
-  - Elaboração de diagramas UML (Classes, Sequência e ERD) e contratos de API.
-- [x] **Etapa 2 — Validação e Integração do Hardware de Bancada:**
-  - Montagem do cluster de 5 sensores na protoboard com fonte MB102.
-  - Implementação de multisampling no ADC1 e isolamento de falha mecânica de bancada documentado cientificamente.
-- [x] **Etapa 3 — Firmware e Pipeline de Telemetria:**
-  - Implementação de transmissão HTTP POST com JSON padronizado e token `X-API-Key`.
-  - Suporte a monitoramento simultâneo via USB Serial, Telnet e WebServer embutido.
-- [x] **Etapa 4 — Camada de Ingestão, Persistência e Nuvem:**
-  - Criação do receptor FastAPI com validação estrita Pydantic v2.
-  - Implementação do banco relacional com SQLAlchemy (SQLite local / PostgreSQL RDS).
-  - Estruturação dos scripts e arquitetura para deploy na AWS (`infra/aws/`).
-- [x] **Etapa 5 — Dashboard Frontend e Streaming em Tempo Real:**
-  - Interface SPA no design system Apple (iOS Weather / Bento Grid) com Glassmorphism.
-  - Streaming Server-Sent Events (SSE) com latência inferior a 15ms e animações de oscilação.
-  - Séries temporais interativas (Chart.js) e geolocalização sensorial (Leaflet.js).
-- [ ] **Etapa 6 — Deploy e Publicação em Nuvem (AWS EC2 / Nginx):**
-  - Publicação da infraestrutura unificada na nuvem AWS via esteira CI/CD (GitHub Actions).
-  - Redação da monografia acadêmica do PIM II conforme normas ABNT da UNIP.
+- [x] **Etapa 1 — Especificações Técnicas e Modelagem UML**
+- [x] **Etapa 2 — Validação e Integração do Hardware de Bancada (5 Sensores no ADC1/I2C)**
+- [x] **Etapa 3 — Firmware Reativo e Pipeline de Telemetria HTTP**
+- [x] **Etapa 4 — Arquitetura Dual-Pipeline Hot/Cold Path (WMO-No. 8 / INMET) e PostgreSQL**
+- [x] **Etapa 5 — Interface Web Estilo Apple iOS Weather (1ª Dobra + Peek + Dashboard Completo)**
+- [ ] **Etapa 6 — Deploy em Nuvem (AWS EC2 / Docker Compose) e Monografia ABNT Final**
 
 ---
 
 ## 6. Licença
 
-Este projeto é distribuído sob a licença **MIT**. Consulte [LICENSE](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/LICENSE) para mais detalhes.
+Este projeto é distribuído sob a licença **MIT**. Consulte [LICENSE](file:///home/wvs/Documents/pim2/ecopulse/LICENSE) para mais detalhes.

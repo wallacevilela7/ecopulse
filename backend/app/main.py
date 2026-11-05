@@ -1,11 +1,14 @@
 """
 EcoPulse - Backend API (FastAPI + SQLAlchemy)
 Projeto Integrado Multidisciplinar II (PIM II - UNIP)
-Receptor, Persistência, Consultas e Streaming SSE em Tempo Real
+Arquitetura Dual-Pipeline:
+  - Hot Path: Estado em Memória RAM + Streaming SSE (< 15ms, Zero Disk I/O)
+  - Cold Path: Agregação Temporal (5 min, WMO-No. 8 / INMET) + Deadband de Eventos no PostgreSQL
 """
 import os
 import json
 import asyncio
+from collections import deque
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Set
@@ -17,19 +20,20 @@ from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
 from app.database import engine, Base, get_db
-from app.models import TelemetryRecord
+from app.models import TelemetryAggregated5m, TelemetryEvent
 from app.schemas import TelemetryPayload, TelemetryResponse
 
 load_dotenv()
 
 API_SECRET_KEY = os.getenv("API_SECRET_KEY", "chave-secreta-estacao-unip-2026")
+COLD_PATH_WINDOW_SECONDS = int(os.getenv("COLD_PATH_WINDOW_SECONDS", "300"))  # 5 minutos (padrão WMO/Davis)
 
 
 # =========================================================================
-# Barramento de Eventos em Tempo Real (Pub/Sub para Streaming SSE)
+# 1. Barramento Pub/Sub em Memória para Streaming SSE (Hot Path)
 # =========================================================================
 class TelemetryBroadcaster:
-    """Distribuidor de leituras em tempo real para múltiplos clientes conectados."""
+    """Distribuidor assíncrono de leituras em tempo real para múltiplos clientes SSE."""
     def __init__(self):
         self._subscribers: Set[asyncio.Queue] = set()
 
@@ -57,21 +61,233 @@ class TelemetryBroadcaster:
 broadcaster = TelemetryBroadcaster()
 
 
+# =========================================================================
+# 2. Motor Dual-Pipeline: Hot Path (RAM) & Cold Path (Agregador + Deadband)
+# =========================================================================
+class HotColdTelemetryEngine:
+    """
+    Gerencia o estado volátil de baixa latência (Hot Path) e decide quando
+    consolidar e persistir no banco relacional (Cold Path).
+    """
+    def __init__(self):
+        self.latest_by_device: Dict[str, dict] = {}
+        self.live_ring_by_device: Dict[str, deque] = {}
+        self.window_samples: Dict[str, List[dict]] = {}
+        self.window_start_by_device: Dict[str, datetime] = {}
+        self.daily_extremes: Dict[str, dict] = {}
+        self.persisted_once_devices: Set[str] = set()
+        self.total_hot_ticks: int = 0
+        self.total_cold_writes: int = 0
+
+    def reset_state(self):
+        """Reinicia o estado em memória (útil para suíte de testes automatizados)."""
+        self.latest_by_device.clear()
+        self.live_ring_by_device.clear()
+        self.window_samples.clear()
+        self.window_start_by_device.clear()
+        self.daily_extremes.clear()
+        self.persisted_once_devices.clear()
+        self.total_hot_ticks = 0
+        self.total_cold_writes = 0
+
+    def _update_extremes(self, device_id: str, s: dict):
+        ext = self.daily_extremes.get(device_id)
+        temp = s.get("temperature_c")
+        hum = s.get("humidity_pct")
+        press = s.get("pressure_hpa")
+        aqi = s.get("air_quality_ppm")
+
+        if not ext:
+            self.daily_extremes[device_id] = {
+                "temp_min": temp,
+                "temp_max": temp,
+                "humidity_min": hum,
+                "humidity_max": hum,
+                "pressure_min": press,
+                "pressure_max": press,
+                "air_quality_max": aqi,
+            }
+            return
+
+        if temp is not None:
+            ext["temp_min"] = min(ext["temp_min"], temp) if ext["temp_min"] is not None else temp
+            ext["temp_max"] = max(ext["temp_max"], temp) if ext["temp_max"] is not None else temp
+        if hum is not None:
+            ext["humidity_min"] = min(ext["humidity_min"], hum) if ext["humidity_min"] is not None else hum
+            ext["humidity_max"] = max(ext["humidity_max"], hum) if ext["humidity_max"] is not None else hum
+        if press is not None:
+            ext["pressure_min"] = min(ext["pressure_min"], press) if ext["pressure_min"] is not None else press
+            ext["pressure_max"] = max(ext["pressure_max"], press) if ext["pressure_max"] is not None else press
+        if aqi is not None:
+            ext["air_quality_max"] = max(ext["air_quality_max"], aqi) if ext["air_quality_max"] is not None else aqi
+
+    def detect_deadband_anomaly(self, prev: Optional[dict], curr_sensors: dict) -> Optional[dict]:
+        """
+        Avalia se ocorreu mudança abrupta nos sensores que justifique
+        quebra imediata de janela e registro de alerta no Cold Path.
+        """
+        if not prev:
+            if curr_sensors.get("is_raining"):
+                return {
+                    "event_type": "RAIN_STARTED",
+                    "severity": "WARNING",
+                    "title": "Precipitação em Andamento",
+                    "description": (
+                        f"Sensor pluviométrico detectou lâmina d'água ativa "
+                        f"({curr_sensors.get('rain_intensity_pct', 0):.0f}% de intensidade)."
+                    ),
+                }
+            return None
+
+        prev_s = prev.get("sensors", {})
+
+        # 1. Transição de Chuva (Início ou Fim)
+        prev_rain = bool(prev_s.get("is_raining", False))
+        curr_rain = bool(curr_sensors.get("is_raining", False))
+        if curr_rain != prev_rain:
+            if curr_rain:
+                return {
+                    "event_type": "RAIN_STARTED",
+                    "severity": "WARNING",
+                    "title": "Início de Chuva Detectado",
+                    "description": (
+                        f"Precipitação iniciada na estação com intensidade de "
+                        f"{curr_sensors.get('rain_intensity_pct', 0):.0f}%."
+                    ),
+                }
+            else:
+                return {
+                    "event_type": "RAIN_STOPPED",
+                    "severity": "INFO",
+                    "title": "Estiagem / Fim de Precipitação",
+                    "description": "Superfície do sensor MH-RD retornou ao estado seco.",
+                }
+
+        # 2. Queda ou Variação Barométrica Brusca (>= 2.0 hPa)
+        p_prev = prev_s.get("pressure_hpa")
+        p_curr = curr_sensors.get("pressure_hpa")
+        if p_prev is not None and p_curr is not None and abs(p_curr - p_prev) >= 2.0:
+            direcao = "Queda" if p_curr < p_prev else "Elevação"
+            return {
+                "event_type": "PRESSURE_DROP_ALERT",
+                "severity": "WARNING" if p_curr < p_prev else "INFO",
+                "title": f"{direcao} Barométrica Acentuada",
+                "description": (
+                    f"Pressão atmosférica variou de {p_prev:.1f} hPa para {p_curr:.1f} hPa "
+                    f"(Δ = {p_curr - p_prev:+.1f} hPa). Indicativo de instabilidade."
+                ),
+            }
+
+        # 3. Salto de Poluentes / Gases no MQ-135 (Δ >= 50 PPM)
+        aqi_prev = prev_s.get("air_quality_ppm")
+        aqi_curr = curr_sensors.get("air_quality_ppm")
+        if aqi_prev is not None and aqi_curr is not None and (aqi_curr - aqi_prev) >= 50.0:
+            return {
+                "event_type": "GAS_SPIKE_ALERT",
+                "severity": "CRITICAL" if aqi_curr >= 600 else "WARNING",
+                "title": "Pico de Gases / Fumaça Detectado",
+                "description": (
+                    f"Sensor MQ-135 registrou elevação abrupta de {aqi_prev:.0f} PPM "
+                    f"para {aqi_curr:.0f} PPM."
+                ),
+            }
+
+        # 4. Variação Térmica Abrupta (Δ >= 1.5 °C)
+        t_prev = prev_s.get("temperature_c")
+        t_curr = curr_sensors.get("temperature_c")
+        if t_prev is not None and t_curr is not None and abs(t_curr - t_prev) >= 1.5:
+            return {
+                "event_type": "THERMAL_SURGE",
+                "severity": "INFO",
+                "title": "Oscilação Térmica Rápida",
+                "description": f"Temperatura variou rapidamente de {t_prev:.1f}°C para {t_curr:.1f}°C.",
+            }
+
+        return None
+
+    def flush_window_to_db(self, db: Session, device_id: str, now: datetime) -> TelemetryAggregated5m:
+        """Calcula médias, mínimas e máximas do buffer e grava 1 linha consolidada no PostgreSQL."""
+        samples = self.window_samples.get(device_id, [])
+        w_start = self.window_start_by_device.get(device_id, now)
+
+        def valid_vals(key: str) -> List[float]:
+            return [
+                float(x["sensors"][key])
+                for x in samples
+                if x["sensors"].get(key) is not None
+            ]
+
+        temps = valid_vals("temperature_c")
+        hums = valid_vals("humidity_pct")
+        press = valid_vals("pressure_hpa")
+        alts = valid_vals("altitude_m")
+        aqis = valid_vals("air_quality_ppm")
+        lights = valid_vals("luminosity_pct")
+        rains = valid_vals("rain_intensity_pct")
+        any_rain = any(bool(x["sensors"].get("is_raining")) for x in samples)
+
+        last_diag = samples[-1].get("diagnostics", {}) if samples else {}
+
+        avg = lambda lst: round(sum(lst) / len(lst), 2) if lst else None
+
+        registro = TelemetryAggregated5m(
+            device_id=device_id,
+            window_start=w_start,
+            window_end=now,
+            samples_count=len(samples) if samples else 1,
+            temp_avg=avg(temps),
+            temp_min=round(min(temps), 2) if temps else None,
+            temp_max=round(max(temps), 2) if temps else None,
+            humidity_avg=avg(hums),
+            humidity_min=round(min(hums), 2) if hums else None,
+            humidity_max=round(max(hums), 2) if hums else None,
+            pressure_avg=avg(press),
+            pressure_min=round(min(press), 2) if press else None,
+            pressure_max=round(max(press), 2) if press else None,
+            altitude_avg=avg(alts),
+            air_quality_avg=avg(aqis),
+            air_quality_max=round(max(aqis), 2) if aqis else None,
+            luminosity_avg=avg(lights),
+            rain_intensity_avg=avg(rains),
+            is_raining_period=any_rain,
+            uptime_seconds=last_diag.get("uptime_seconds"),
+            wifi_rssi_dbm=last_diag.get("wifi_rssi_dbm"),
+            free_heap_bytes=last_diag.get("free_heap_bytes"),
+        )
+
+        db.add(registro)
+        db.commit()
+        db.refresh(registro)
+
+        # Reinicia o buffer da janela após persistir
+        self.window_samples[device_id] = []
+        self.window_start_by_device[device_id] = now
+        self.persisted_once_devices.add(device_id)
+        self.total_cold_writes += 1
+
+        return registro
+
+
+telemetry_engine = HotColdTelemetryEngine()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Cria automaticamente as tabelas do banco no boot da aplicação."""
+    """Inicializa as tabelas do Cold Path no boot da aplicação."""
     Base.metadata.create_all(bind=engine)
     yield
 
 
 app = FastAPI(
-    title="EcoPulse IoT API",
-    description="API de Ingestão, Persistência e Streaming em Tempo Real (ESP32)",
-    version="1.2.0",
+    title="EcoPulse IoT API — Hot/Cold Path",
+    description=(
+        "API de Telemetria Meteorológica com Dual-Pipeline: "
+        "Hot Path (RAM + SSE < 15ms) e Cold Path (Agregação 5m WMO-No. 8 + Deadband no PostgreSQL)."
+    ),
+    version="2.0.0",
     lifespan=lifespan,
 )
 
-# Habilita CORS para o Dashboard Web
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -83,12 +299,21 @@ app.add_middleware(
 
 @app.get("/health", tags=["Monitoramento"])
 def health_check():
-    """Endpoint de verificação de integridade da API."""
+    """Diagnóstico operacional da API e métricas de economia de I/O do Hot/Cold Path."""
+    hot = telemetry_engine.total_hot_ticks
+    cold = telemetry_engine.total_cold_writes
+    io_saved_pct = round((1 - (cold / hot)) * 100, 2) if hot > 0 and cold <= hot else 0.0
     return {
         "status": "healthy",
+        "architecture": "Hot/Cold Path Dual-Pipeline",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "service": "EcoPulse Backend API",
         "subscribers_online": len(broadcaster._subscribers),
+        "pipeline_metrics": {
+            "hot_path_ticks_received": hot,
+            "cold_path_db_writes": cold,
+            "disk_io_reduction_pct": io_saved_pct,
+            "window_interval_seconds": COLD_PATH_WINDOW_SECONDS,
+        },
     }
 
 
@@ -104,8 +329,9 @@ async def receber_telemetria(
     db: Session = Depends(get_db),
 ):
     """
-    Ingestão de telemetria emitida pelo ESP32 via HTTP POST.
-    Valida a chave, grava no banco de dados e transmite instantaneamente (SSE).
+    Ingestão Dual-Pipeline:
+    1. Hot Path: Atualiza estado em RAM e transmite imediatamente via SSE (< 15ms).
+    2. Cold Path: Agrega em janela de 5 minutos ou persiste imediatamente se detectar Deadband/Exceção.
     """
     if _auth != API_SECRET_KEY:
         raise HTTPException(
@@ -114,75 +340,130 @@ async def receber_telemetria(
         )
 
     agora = datetime.now(timezone.utc)
-    s = payload.sensors
-    d = payload.diagnostics
+    dev_id = payload.device_id
+    s_dict = payload.sensors.model_dump()
+    d_dict = payload.diagnostics.model_dump() if payload.diagnostics else {}
 
-    # Criação da entidade relacional para persistência no banco
-    registro = TelemetryRecord(
-        device_id=payload.device_id,
-        recorded_at=agora,
-        temperature_c=s.temperature_c,
-        humidity_pct=s.humidity_pct,
-        pressure_hpa=s.pressure_hpa,
-        altitude_m=s.altitude_m,
-        air_quality_ppm=s.air_quality_ppm,
-        luminosity_pct=s.luminosity_pct,
-        rain_intensity_pct=s.rain_intensity_pct,
-        is_raining=s.is_raining,
-        uptime_seconds=d.uptime_seconds if d else None,
-        wifi_rssi_dbm=d.wifi_rssi_dbm if d else None,
-        free_heap_bytes=d.free_heap_bytes if d else None,
-    )
+    prev_sample = telemetry_engine.latest_by_device.get(dev_id)
 
-    db.add(registro)
-    db.commit()
-    db.refresh(registro)
+    # Atualiza extremos diários em RAM
+    telemetry_engine._update_extremes(dev_id, s_dict)
 
-    # Disparo Imediato via SSE para todos os navegadores abertos (< 10ms)
-    dict_payload = registro.to_dict()
-    await broadcaster.broadcast(dict_payload)
+    # Monta pacote enriquecido para o Hot Path
+    hot_packet = {
+        "device_id": dev_id,
+        "recorded_at": agora.isoformat(),
+        "sensors": s_dict,
+        "diagnostics": d_dict,
+        "extremes": telemetry_engine.daily_extremes.get(dev_id, {}),
+    }
 
-    # Log resumido no terminal do Backend
-    chuva_str = "SIM" if s.is_raining else "NÃO"
+    # Registra no buffer da janela atual
+    if dev_id not in telemetry_engine.window_samples:
+        telemetry_engine.window_samples[dev_id] = []
+        telemetry_engine.window_start_by_device[dev_id] = agora
+
+    telemetry_engine.window_samples[dev_id].append(hot_packet)
+    telemetry_engine.latest_by_device[dev_id] = hot_packet
+    telemetry_engine.total_hot_ticks += 1
+
+    if dev_id not in telemetry_engine.live_ring_by_device:
+        telemetry_engine.live_ring_by_device[dev_id] = deque(maxlen=30)
+    telemetry_engine.live_ring_by_device[dev_id].append(hot_packet)
+
+    # Avalia regras do Cold Path (1: Boot inicial, 2: Deadband Anomaly, 3: Janela de 5 minutos)
+    anomaly = telemetry_engine.detect_deadband_anomaly(prev_sample, s_dict)
+    is_initial_boot = dev_id not in telemetry_engine.persisted_once_devices
+    elapsed_sec = (agora - telemetry_engine.window_start_by_device[dev_id]).total_seconds()
+    is_window_expired = elapsed_sec >= COLD_PATH_WINDOW_SECONDS
+
+    cold_persisted = False
+    reason = "HOT_PATH_MEMORY_ONLY"
+
+    if anomaly:
+        evento = TelemetryEvent(
+            device_id=dev_id,
+            recorded_at=agora,
+            event_type=anomaly["event_type"],
+            severity=anomaly["severity"],
+            title=anomaly["title"],
+            description=anomaly["description"],
+            snapshot_json=json.dumps(s_dict),
+        )
+        db.add(evento)
+        db.commit()
+        hot_packet["latest_event"] = evento.to_dict()
+
+    if is_initial_boot or anomaly or is_window_expired:
+        reason = (
+            "DEADBAND_EVENT"
+            if anomaly
+            else ("WINDOW_5M" if is_window_expired else "INITIAL_BOOT")
+        )
+        agg_rec = telemetry_engine.flush_window_to_db(db, dev_id, agora)
+        cold_persisted = True
+        hot_packet["id"] = agg_rec.id
+
+    hot_packet["pipeline"] = {
+        "hot_path_streamed": True,
+        "cold_path_persisted": cold_persisted,
+        "persistence_reason": reason,
+        "hot_ticks_total": telemetry_engine.total_hot_ticks,
+        "cold_writes_total": telemetry_engine.total_cold_writes,
+        "buffer_samples": len(telemetry_engine.window_samples.get(dev_id, [])),
+    }
+
+    # Disparo imediato no Hot Path via SSE (< 15ms)
+    await broadcaster.broadcast(hot_packet)
+
+    status_tag = f"COLD DB [{reason}]" if cold_persisted else "HOT RAM [SSE ONLY]"
     print(
-        f"[DB PERSISTED #{registro.id} + SSE BROADCAST] {payload.device_id} | "
-        f"T: {s.temperature_c}°C | U: {s.humidity_pct}% | "
-        f"P: {s.pressure_hpa}hPa | Ar: {s.air_quality_ppm}ppm | "
-        f"Luz: {s.luminosity_pct}% | Chuva: {chuva_str}"
+        f"[{status_tag}] {dev_id} | "
+        f"T: {s_dict.get('temperature_c')}°C | U: {s_dict.get('humidity_pct')}% | "
+        f"P: {s_dict.get('pressure_hpa')}hPa | Ar: {s_dict.get('air_quality_ppm')}ppm"
     )
 
     return TelemetryResponse(
         status="success",
-        message="Telemetria gravada com sucesso e propagada em tempo real.",
-        device_id=payload.device_id,
+        message="Telemetria processada no Hot Path e avaliada pelo Cold Path.",
+        device_id=dev_id,
         recorded_at=agora.isoformat(),
+        hot_path_streamed=True,
+        cold_path_persisted=cold_persisted,
+        persistence_reason=reason,
     )
 
 
 @app.get("/api/v1/telemetry/stream", tags=["Telemetria"])
 async def stream_telemetria(request: Request, db: Session = Depends(get_db)):
     """
-    Canal de Streaming Server-Sent Events (SSE).
-    Mantém conexão persistente e envia novos dados imediatamente após cada leitura do ESP32.
+    Canal Server-Sent Events (SSE) do Hot Path.
+    Entrega a leitura atual imediatamente ao conectar e faz push contínuo em < 15ms.
     """
     queue = await broadcaster.subscribe()
 
     async def event_generator():
         try:
-            # Envia a leitura mais recente imediatamente na conexão para sincronizar a tela
-            ultimo = db.query(TelemetryRecord).order_by(TelemetryRecord.recorded_at.desc()).first()
-            if ultimo:
-                yield f"data: {json.dumps(ultimo.to_dict())}\n\n"
+            # Sincronização imediata na abertura do stream (prioriza Hot Path em RAM)
+            if telemetry_engine.latest_by_device:
+                latest_mem = next(iter(telemetry_engine.latest_by_device.values()))
+                yield f"data: {json.dumps(latest_mem)}\n\n"
+            else:
+                ultimo_db = (
+                    db.query(TelemetryAggregated5m)
+                    .order_by(TelemetryAggregated5m.window_end.desc())
+                    .first()
+                )
+                if ultimo_db:
+                    yield f"data: {json.dumps(ultimo_db.to_dict())}\n\n"
 
             while True:
                 if await request.is_disconnected():
                     break
                 try:
-                    # Aguarda a próxima telemetria emitida pelo ESP32 (ou timeout de 15s para ping de keepalive)
                     data = await asyncio.wait_for(queue.get(), timeout=15.0)
                     yield f"data: {json.dumps(data)}\n\n"
                 except asyncio.TimeoutError:
-                    # Ping para manter ativa a conexão através de proxies Nginx / Cloudflare
                     yield ": ping\n\n"
         finally:
             broadcaster.unsubscribe(queue)
@@ -203,33 +484,73 @@ def obter_ultima_telemetria(
     device_id: Optional[str] = Query(None, description="Filtra por identificador de estação"),
     db: Session = Depends(get_db),
 ):
-    """Retorna a medição mais recente gravada no banco de dados."""
-    query = db.query(TelemetryRecord)
-    if device_id:
-        query = query.filter(TelemetryRecord.device_id == device_id)
+    """
+    Retorna o estado mais recente da estação a partir do Hot Path em memória RAM (O(1)),
+    ou faz fallback para a última janela consolidada no PostgreSQL caso o servidor tenha acabado de iniciar.
+    """
+    # 1. Tenta obter do Hot Path em memória RAM
+    if device_id and device_id in telemetry_engine.latest_by_device:
+        packet = dict(telemetry_engine.latest_by_device[device_id])
+        return packet
+    elif not device_id and telemetry_engine.latest_by_device:
+        packet = dict(next(iter(telemetry_engine.latest_by_device.values())))
+        return packet
 
-    registro = query.order_by(TelemetryRecord.recorded_at.desc()).first()
+    # 2. Fallback para o Cold Path persistido no banco
+    query = db.query(TelemetryAggregated5m)
+    if device_id:
+        query = query.filter(TelemetryAggregated5m.device_id == device_id)
+
+    registro = query.order_by(TelemetryAggregated5m.window_end.desc()).first()
     if not registro:
-        return {"status": "empty", "message": "Nenhum registro encontrado no banco de dados."}
+        return {"status": "empty", "message": "Nenhum registro encontrado."}
     return registro.to_dict()
 
 
 @app.get("/api/v1/telemetry/history", tags=["Telemetria"])
 def obter_historico_telemetria(
-    limit: int = Query(50, ge=1, le=500, description="Quantidade máxima de medições"),
+    limit: int = Query(48, ge=1, le=500, description="Quantidade máxima de janelas consolidadas"),
     device_id: Optional[str] = Query(None, description="Filtra por estação"),
     db: Session = Depends(get_db),
 ):
     """
-    Retorna a série temporal cronológica para plotagem dos gráficos no frontend.
-    Ordenado do mais antigo para o mais recente dentro do limite selecionado.
+    Retorna a série temporal consolidada pelo Cold Path (tb_telemetry_aggregated_5m).
+    Quando há poucos blocos consolidados no banco após o boot, complementa com os pontos
+    recentes do ring-buffer para visualização contínua imediata.
     """
-    query = db.query(TelemetryRecord)
+    query = db.query(TelemetryAggregated5m)
     if device_id:
-        query = query.filter(TelemetryRecord.device_id == device_id)
+        query = query.filter(TelemetryAggregated5m.device_id == device_id)
 
-    # Pega os N mais recentes e reordena em ordem cronológica para plotagem linear
-    ultimos = query.order_by(TelemetryRecord.recorded_at.desc()).limit(limit).all()
-    cronologicos = list(reversed(ultimos))
+    ultimos_db = query.order_by(TelemetryAggregated5m.window_end.desc()).limit(limit).all()
+    cronologicos = [r.to_dict() for r in reversed(ultimos_db)]
 
-    return [r.to_dict() for r in cronologicos]
+    # Se houver menos de 6 pontos no banco e existir ring-buffer em RAM, mescla os ticks recentes
+    ring_target = None
+    if device_id and device_id in telemetry_engine.live_ring_by_device:
+        ring_target = list(telemetry_engine.live_ring_by_device[device_id])
+    elif not device_id and telemetry_engine.live_ring_by_device:
+        ring_target = list(next(iter(telemetry_engine.live_ring_by_device.values())))
+
+    if ring_target and len(cronologicos) < 6:
+        existing_ts = {item.get("recorded_at") for item in cronologicos}
+        for sample in ring_target:
+            if sample.get("recorded_at") not in existing_ts:
+                cronologicos.append(sample)
+
+    return cronologicos[-limit:]
+
+
+@app.get("/api/v1/telemetry/events", tags=["Telemetria"])
+def obter_eventos_climaticos(
+    limit: int = Query(10, ge=1, le=100, description="Quantidade máxima de eventos/alertas"),
+    device_id: Optional[str] = Query(None, description="Filtra por estação"),
+    db: Session = Depends(get_db),
+):
+    """Retorna os alertas e eventos extraordinários registrados pelo detector de Deadband."""
+    query = db.query(TelemetryEvent)
+    if device_id:
+        query = query.filter(TelemetryEvent.device_id == device_id)
+
+    eventos = query.order_by(TelemetryEvent.recorded_at.desc()).limit(limit).all()
+    return [e.to_dict() for e in eventos]

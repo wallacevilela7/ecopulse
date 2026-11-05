@@ -1,4 +1,4 @@
-# Arquitetura de Software e Telemetria: EcoPulse (Hot/Cold Path)
+# Arquitetura de Software e Telemetria: EcoPulse (Hot Path/Cold Path)
 
 > **Projeto Integrado Multidisciplinar II (PIM II) — UNIP**  
 > **Curso:** Bacharelado em Ciência da Computação (2º Semestre)  

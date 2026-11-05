@@ -484,6 +484,8 @@ cmd = [
 
 res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 if res.returncode == 0:
+    if os.path.exists(HTML_PATH):
+        os.remove(HTML_PATH)
     print(f"[OK] PDF gerado com sucesso em: {PDF_PATH}")
 else:
     print(f"[ERRO] Falha ao compilar PDF: {res.stderr.decode('utf-8')}")

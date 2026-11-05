@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Fundamentação Teórica e Referências ABNT - EcoPulse PIM II</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 25mm 20mm 20mm 30mm; /* Padrão ABNT: Superior 3cm, Esquerda 3cm, Inferior 2cm, Direita 2cm */
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: "Times New Roman", Times, serif;
+    color: #111111;
+    background-color: #ffffff;
+    font-size: 12pt;
+    line-height: 1.5;
+    text-align: justify;
+  }
+
+  .page-break {
+    page-break-after: always;
+  }
+
+  /* Capa / Identificação */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100vh;
+    padding: 20px 0;
+    text-align: center;
+  }
+
+  .cover-header {
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 13pt;
+    line-height: 1.4;
+  }
+
+  .cover-title-box {
+    margin-top: 140px;
+  }
+
+  .cover-title {
+    font-size: 16pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    line-height: 1.3;
+    margin-bottom: 12px;
+  }
+
+  .cover-subtitle {
+    font-size: 12pt;
+    font-weight: normal;
+    font-style: italic;
+    color: #333333;
+  }
+
+  .cover-natureza {
+    margin-top: 100px;
+    margin-left: 45%;
+    text-align: justify;
+    font-size: 10pt;
+    line-height: 1.3;
+  }
+
+  .cover-footer {
+    margin-top: auto;
+    font-size: 11pt;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+
+  /* Títulos de Seção */
+  h1 {
+    font-size: 14pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-top: 28px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid #333333;
+    padding-bottom: 4px;
+  }
+
+  h2 {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  h3 {
+    font-size: 12pt;
+    font-weight: bold;
+    font-style: italic;
+    margin-top: 14px;
+    margin-bottom: 8px;
+  }
+
+  p {
+    text-indent: 1.25cm;
+    margin-bottom: 10px;
+  }
+
+  .no-indent {
+    text-indent: 0;
+  }
+
+  /* Citações Longas ABNT (mais de 3 linhas) */
+  .citacao-longa {
+    margin-left: 4cm;
+    font-size: 10pt;
+    line-height: 1.2;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    text-align: justify;
+    border-left: 2px solid #666666;
+    padding-left: 10px;
+  }
+
+  /* Tabelas Técnicas */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 10pt;
+    line-height: 1.3;
+  }
+
+  th, td {
+    border: 1px solid #777777;
+    padding: 7px 10px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 9pt;
+  }
+
+  .table-caption {
+    font-size: 10pt;
+    font-weight: bold;
+    margin-bottom: 4px;
+    text-indent: 0;
+  }
+
+  .table-source {
+    font-size: 9pt;
+    font-style: italic;
+    margin-top: 4px;
+    text-indent: 0;
+  }
+
+  /* Caixas de Destaque */
+  .callout-box {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-left: 4px solid #0284c7;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 10.5pt;
+    line-height: 1.4;
+  }
+
+  .callout-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #0369a1;
+  }
+
+  /* Referências Bibliográficas (NBR 6023) */
+  .referencias-lista p {
+    text-indent: 0;
+    margin-bottom: 14px;
+    line-height: 1.35;
+    font-size: 11pt;
+  }
+
+  .destaque-abnt {
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+  <!-- ===================================================================== -->
+  <!-- CAPA ACADÊMICA ABNT -->
+  <!-- ===================================================================== -->
+  <div class="cover page-break">
+    <div class="cover-header">
+      UNIVERSIDADE PAULISTA — UNIP<br>
+      INSTITUTO DE CIÊNCIAS EXATAS E TECNOLOGIA<br>
+      BACHARELADO EM CIÊNCIA DA COMPUTAÇÃO — 2º SEMESTRE
+    </div>
+
+    <div class="cover-title-box">
+      <div class="cover-title">
+        FUNDAMENTAÇÃO TEÓRICA E PADRÕES DE ENGENHARIA PARA TELEMETRIA IOT METEOROLÓGICA
+      </div>
+      <div class="cover-subtitle">
+        Separação de Pipelines Hot/Cold Path, Otimização de Persistência em PostgreSQL e Normas Internacionais (WMO, INMET, Campbell e Davis)
+      </div>
+    </div>
+
+    <div class="cover-natureza">
+      Documento técnico de revisão bibliográfica, benchmarking e fundamentação metodológica vinculado ao <strong>Projeto Integrado Multidisciplinar II (PIM II)</strong>, desenvolvido para o ecossistema <strong>EcoPulse</strong>.
+    </div>
+
+    <div class="cover-footer">
+      SÃO PAULO — SP<br>
+      2026
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- SEÇÃO 1: INTRODUÇÃO E FORMULAÇÃO DO PROBLEMA -->
+  <!-- ===================================================================== -->
+  <h1>1. Formulação do Problema e Motivação Arquitetural</h1>
+
+  <p>
+    No desenvolvimento de sistemas computacionais embarcados aplicados à Internet das Coisas (IoT) e cidades inteligentes (<em>Smart Cities</em>), um dos equívocos mais recorrentes reside na transposição ingênua do ciclo de leitura física de sensores diretamente para operações de gravação atômica em bancos de dados relacionais. 
+  </p>
+
+  <p>
+    Em um cenário experimental onde um microcontrolador (ESP32) realiza aquisições a cada 2,5 segundos e despacha tais pacotes via protocolo HTTP para uma API receptora que, por sua vez, executa instruções de inserção SQL (<code>INSERT</code>) imediatas, gera-se uma carga diária de <strong>34.560 registros de escrita contínua por nó sensor</strong>. Em escala anual, isso representa mais de 12,6 milhões de registros para um único cluster meteorológico de protoboard.
+  </p>
+
+  <p>
+    Sob o ponto de vista da física atmosférica, grandezas meteorológicas como temperatura ambiente, umidade relativa do ar e pressão barométrica possuem acentuada inércia térmica e hidrostática. Exceto durante a passagem de frentes de tempestade ou eventos extremos localizados, os valores atmosféricos sofrem variações infinitesimais em intervalos de poucos segundos. Portanto, salvar a cada 2,5 segundos medições estáticas acarreta:
+  </p>
+
+  <ul style="margin-left: 2.5cm; margin-bottom: 12px; font-size: 11pt;">
+    <li><strong>Saturação desnecessária de I/O em disco</strong> e bloqueio por concorrência de escrita (<em>lock contention</em>);</li>
+    <li><strong>Crescimento desordenado dos logs de transação</strong> (<em>Write-Ahead Logging — WAL</em>) no PostgreSQL;</li>
+    <li><strong>Degradação da taxa de acerto de cache</strong> (<em>Buffer Cache Hit Ratio</em>) do SGBD;</li>
+    <li><strong>Custos financeiros proibitivos</strong> em instâncias de nuvem (como AWS EC2 e AWS RDS) devido ao esgotamento de créditos de IOPS de armazenamento elástico (EBS).</li>
+  </ul>
+
+  <!-- ===================================================================== -->
+  <!-- SEÇÃO 2: REVISÃO DE NORMAS METEOROLÓGICAS (WMO E INMET) -->
+  <!-- ===================================================================== -->
+  <h1>2. Estado da Arte em Redes Meteorológicas Oficiais</h1>
+
+  <h2>2.1. Organização Meteorológica Mundial (OMM / WMO-No. 8)</h2>
+
+  <p>
+    A Organização Meteorológica Mundial, por meio de sua publicação de referência mandatória <em>WMO-No. 8: Guide to Meteorological Instruments and Methods of Observation</em> (WMO, 2018), estabelece diretrizes rigorosas para a operação de Estações Meteorológicas Automáticas (<em>Automatic Weather Stations — AWS</em>).
+  </p>
+
+  <p>
+    O manual dissocia estritamente três horizontes temporais na cadeia de aquisição de dados meteorológicos:
+  </p>
+
+  <div class="citacao-longa">
+    "A taxa de amostragem sensorial (sampling interval) deve ser suficientemente elevada (tipicamente entre 1 e 3 segundos) para permitir filtragem analógica/digital e rejeição de ruídos em nível de instrumentação (Quality Control Level 0). Contudo, essa frequência em nada se confunde com o intervalo de arquivamento (logging/archiving interval). Os dados amostrados devem ser matematicamente agregados em médias móveis e acumulações ao longo de intervalos representativos de 1 a 10 minutos para fins de transmissão operacional e preservação sinóptica em bancos de dados históricos." (WMO, 2018, v. 3, cap. 1, tradução nossa).
+  </div>
+
+  <p>
+    Dessa forma, a OMM preconiza que o armazenamento relacional permanente jamais seja realizado no mesmo compasso da leitura eletrônica do transdutor. A computação em borda e os receptores de telemetria têm como dever técnico executar a redução de dados (<em>data reduction</em>) previamente à persistência.
+  </p>
+
+  <h2>2.2. Instituto Nacional de Meteorologia (INMET — Brasil)</h2>
+
+  <p>
+    No contexto brasileiro, o Instituto Nacional de Meteorologia (INMET, 2021) opera a rede nacional de Estações Meteorológicas Automáticas (EMA). Os equipamentos de campo efetuam leituras instantâneas periódicas minuto a minuto para verificação de consistência e alimentação de algoritmos locais de detecção de rajadas de vento e orvalho.
+  </p>
+
+  <p>
+    No entanto, a comunicação com a sede e o arquivamento definitivo na base de dados centralizada do INMET ocorrem em regime <strong>horário</strong> (a cada 60 minutos) ou, em redes especializadas de defesa civil e agrometeorologia, em intervalos de <strong>15 minutos</strong>. A cada registro gravado, armazena-se um vetor contendo a média do período, os extremos (mínima e máxima absolutas da janela) e o acumulado volumétrico de precipitação pluvial em milímetros.
+  </p>
+
+  <!-- ===================================================================== -->
+  <!-- SEÇÃO 3: BENCHMARK INDUSTRIAL (CAMPBELL E DAVIS) -->
+  <!-- ===================================================================== -->
+  <div class="page-break"></div>
+  <h1>3. Benchmark Industrial de Instrumentação Meteorológica</h1>
+
+  <p class="table-caption">Tabela 1 — Comparativo de estratégias de telemetria e gravação na indústria de ponta.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Fabricante / Sistema</th>
+        <th>Taxa de Leitura Sensorial</th>
+        <th>Taxa de Atualização da Tela</th>
+        <th>Intervalo de Gravação em Banco</th>
+        <th>Mecanismo de Otimização</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Campbell Scientific</strong><br>(Datalogger CR1000X)</td>
+        <td>1 Hz a 100 Hz<br>(Amostragem em tempo real)</td>
+        <td>Sub-segundo via portas seriais e barramentos PakBus</td>
+        <td>5, 10 ou 15 minutos<br>(Instrução <code>DataTable</code>)</td>
+        <td>Buffers circulares em memória RAM (SRAM estática); gravação histórica consolidada em memória Flash permanente.</td>
+      </tr>
+      <tr>
+        <td><strong>Davis Instruments</strong><br>(Vantage Pro2 / WeatherLink)</td>
+        <td>2,5 segundos (anemômetro)<br>10 a 50 segundos (termo-higrômetro)</td>
+        <td>2,5 segundos no console LCD receptor local</td>
+        <td>Configurável:<br>5, 10, 15 ou 30 minutos</td>
+        <td>Transmissão contínua por radiofrequência para o display; o módulo <em>Data Logger</em> arquiva apenas blocos agregados de resumo.</td>
+      </tr>
+      <tr>
+        <td><strong>EcoPulse PIM II</strong><br>(Arquitetura Proposta)</td>
+        <td>1 Hz nos sensores locais;<br>HTTP POST a cada 2,5s</td>
+        <td>&lt; 15 ms via streaming SSE (Hot Path)</td>
+        <td>5 minutos (Cold Path)<br>+ Disparo por Deadband/Evento</td>
+        <td>Dual-Pipeline: Cache em RAM no FastAPI com SSE contínuo + Agregação temporal em tabelas relacionais PostgreSQL.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="table-source">Fonte: Elaborado pelo autor (2026), com base em Campbell Scientific (2023), Davis Instruments (2022) e WMO (2018).</p>
+
+  <!-- ===================================================================== -->
+  <!-- SEÇÃO 4: ARQUITETURA HOT/COLD PATH E SISTEMAS INTENSIVOS EM DADOS -->
+  <!-- ===================================================================== -->
+  <h1>4. Fundamentação em Engenharia de Software: Hot Path vs. Cold Path</h1>
+
+  <p>
+    A solução arquitetural definitiva para conciliar a visualização responsiva de oscilações na interface com a integridade do banco de dados encontra sustentação na literatura de sistemas intensivos em dados. Conforme postulado por Kleppmann (2017), fluxos de dados distribuídos devem ser estruturados em dois ramos complementares:
+  </p>
+
+  <div class="callout-box">
+    <div class="callout-title">Princípio da Dualidade Hot/Cold Path (KLEPPMANN, 2017)</div>
+    <p class="no-indent" style="font-size: 10pt; line-height: 1.35;">
+      <strong>1. Hot Path (Caminho Quente):</strong> Otimizado estritamente para baixa latência. Os dados transitam exclusivamente por estruturas em memória volátil (RAM) e barramentos de mensageria assíncrona, sendo entregues aos painéis de supervisão em milissegundos sem interagir com mídias de armazenamento secundário.<br><br>
+      <strong>2. Cold Path (Caminho Frio):</strong> Otimizado para confiabilidade, agregação em lote (batching) e redução volumétrica. O dado é acumulado em janelas deslizantes (<em>tumbling windows</em>) e persistido em bancos estruturados após validação e cálculo estatístico.
+    </p>
+  </div>
+
+  <p>
+    No projeto <strong>EcoPulse</strong>, a aplicação dessa metodologia confere ganhos mensuráveis:
+  </p>
+  
+  <p>
+    <strong>A. No Hot Path:</strong> O microcontrolador ESP32 despacha a telemetria a cada 2,5 segundos via HTTP POST. O backend FastAPI valida o esquema Pydantic e encaminha o payload instantaneamente via <em>Server-Sent Events (SSE)</em> para o navegador. A interface web Apple-like reflete oscilações com transições CSS fluidas em menos de 15 ms.
+  </p>
+
+  <p>
+    <strong>B. No Cold Path:</strong> O backend retém os registros em um acumulador temporizado. A cada 5 minutos, consolida a média, a mínima e a máxima de cada grandeza e insere uma linha na tabela <code>tb_telemetry_aggregated_5m</code>.
+  </p>
+
+  <p>
+    <strong>C. Deadband e Detecção por Exceção:</strong> Para evitar a perda de resolução temporal em momentos críticos, o sistema implementa um algoritmo de <em>Deadband</em> (gravação por desvio). Se o sensor de chuva indicar precipitação súbita, se a pressão atmosférica sofrer variação brusca ($\Delta P \ge 2\text{ hPa}$) ou se houver pico de poluentes no MQ-135, um evento extraordinário é persistido de imediato na tabela <code>tb_telemetry_events</code>.
+  </p>
+
+  <!-- ===================================================================== -->
+  <!-- SEÇÃO 5: DISCUSSÃO SOBRE SGBD RELACIONAL VS TSDB -->
+  <!-- ===================================================================== -->
+  <div class="page-break"></div>
+  <h1>5. Análise Crítica do SGBD: PostgreSQL vs. TimescaleDB vs. SQLite</h1>
+
+  <p>
+    A escolha da camada de persistência para o PIM II deve considerar não apenas o desempenho puro, mas também a pertinência acadêmica e a conformidade com as ementas das disciplinas de Banco de Dados e Engenharia de Software da UNIP:
+  </p>
+
+  <p>
+    <strong>1. Por que não manter o SQLite para produção?</strong> O SQLite opera através de bloqueio em nível de arquivo (<em>file-level locking</em>). Durante escritas concorrentes em regimes multi-thread ou acessos simultâneos de múltiplos usuários no dashboard, o banco manifesta exceções de <code>database is locked</code>, tornando-o inviável para infraestruturas de nuvem com alta disponibilidade.
+  </p>
+
+  <p>
+    <strong>2. Por que o PostgreSQL é a escolha ideal para o escopo do PIM II?</strong> O PostgreSQL é um SGBD relacional de código aberto, aderente às propriedades ACID (Atomicidade, Consistência, Isolamento e Durabilidade), com suporte avançado a índices B-Tree e índices em blocos (BRIN), ideais para atributos temporais sequenciais. Com a redução volumétrica proporcionada pelo Cold Path (288 gravações/dia), o PostgreSQL opera com consumo ínfimo de memória e CPU, enquadrando-se com folga no limite da camada gratuita AWS EC2 <code>t2.micro</code>.
+  </p>
+
+  <p>
+    <strong>3. Oportunidade de Evolução: TimescaleDB.</strong> Caso se deseje estender a solução para ambientes de milhares de sensores, o TimescaleDB surge como a evolução natural, pois atua como uma extensão nativa sobre o PostgreSQL. Ele introduz o conceito de <em>Hypertables</em> (particionamento temporal automático e transparente) e compressão colunar de até 90%, mantendo 100% da sintaxe SQL e compatibilidade com o SQLAlchemy ORM já implementado no projeto.
+  </p>
+
+  <!-- ===================================================================== -->
+  <!-- SEÇÃO 6: CITAÇÕES PRONTAS PARA O RELATÓRIO DO PIM II -->
+  <!-- ===================================================================== -->
+  <h1>6. Citações Formatadas para Utilização Direta na Monografia</h1>
+
+  <p class="no-indent">
+    Os trechos a seguir foram redigidos e formatados segundo as normas <strong>ABNT NBR 10520</strong> (Citações em Documentos), prontos para inclusão nos capítulos de fundamentação teórica e desenvolvimento do relatório do PIM II:
+  </p>
+
+  <div class="callout-box">
+    <div class="callout-title">Citação 1: Separação de Amostragem e Gravação (WMO)</div>
+    <p class="no-indent" style="font-size: 10pt;">
+      "Segundo as diretrizes internacionais da Organização Meteorológica Mundial (WMO, 2018), a alta taxa de amostragem de sensores em estações automáticas tem por objetivo precípuo o controle de qualidade e a filtragem de espúrios em nível de hardware, devendo o arquivamento definitivo ser desvinculado da frequência de amostragem e consolidado em janelas temporais de 5 a 60 minutos."
+    </p>
+  </div>
+
+  <div class="callout-box">
+    <div class="callout-title">Citação 2: Desacoplamento Hot Path / Cold Path (Kleppmann)</div>
+    <p class="no-indent" style="font-size: 10pt;">
+      "Conforme demonstrado por Kleppmann (2017), sistemas distribuídos de alta taxa de eventos demandam a cisão de suas rotas de fluxo em um caminho quente (<em>hot path</em>), direcionado à transmissão volátil com latência estrita na casa dos milissegundos, e um caminho frio (<em>cold path</em>), encarregado de agregações estatísticas periódicas e persistência resiliente em bancos de dados relacionais."
+    </p>
+  </div>
+
+  <div class="callout-box">
+    <div class="callout-title">Citação 3: Práticas Operacionais em Território Nacional (INMET)</div>
+    <p class="no-indent" style="font-size: 10pt;">
+      "Em consonância com as práticas operadas pelo Instituto Nacional de Meteorologia (INMET, 2021) na rede brasileira de Estações Meteorológicas Automáticas (EMA), os parâmetros físicos são coletados localmente em cadência contínua, enquanto os registros históricos arquivados sintetizam médias, extremos barométricos e acumulações hídricas do intervalo avaliado."
+    </p>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- SEÇÃO 7: REFERÊNCIAS BIBLIOGRÁFICAS (ABNT NBR 6023) -->
+  <!-- ===================================================================== -->
+  <div class="page-break"></div>
+  <h1>7. Referências Bibliográficas (Normas ABNT NBR 6023:2018)</h1>
+
+  <div class="referencias-lista">
+    <p>
+      CAMPBELL SCIENTIFIC. <span class="destaque-abnt">CR1000X Measurement and Control Datalogger</span>: operator's manual. Revision 03/2023. Logan, Utah: Campbell Scientific, Inc., 2023. 284 p. Disponível em: https://www.campbellsci.com/cr1000x. Acesso em: 05 nov. 2026.
+    </p>
+
+    <p>
+      DAVIS INSTRUMENTS. <span class="destaque-abnt">Vantage Pro2 & Vantage Pro2 Plus User Manual</span>: wireless and cabled weather stations. Hayward, CA: Davis Instruments Corp., 2022. 64 p. Disponível em: https://www.davisinstruments.com. Acesso em: 05 nov. 2026.
+    </p>
+
+    <p>
+      INMET — INSTITUTO NACIONAL DE METEOROLOGIA. <span class="destaque-abnt">Rede de Estações Meteorológicas Automáticas</span>: padrões operacionais, sensores e controle de qualidade de dados. Brasília, DF: Ministério da Agricultura e Pecuária, 2021. Disponível em: https://portal.inmet.gov.br. Acesso em: 05 nov. 2026.
+    </p>
+
+    <p>
+      KLEPPMANN, Martin. <span class="destaque-abnt">Designing Data-Intensive Applications</span>: the big ideas behind reliable, scalable, and maintainable systems. Sebastopol, CA: O'Reilly Media, 2017. 614 p. ISBN 978-1449373320.
+    </p>
+
+    <p>
+      RAMAKRISHNAN, Raghu; GEHRKE, Johannes. <span class="destaque-abnt">Sistemas de Gerenciamento de Banco de Dados</span>. 3. ed. Porto Alegre: McGraw-Hill, 2008. 922 p. ISBN 978-8586804861.
+    </p>
+
+    <p>
+      SOMMERVILLE, Ian. <span class="destaque-abnt">Engenharia de Software</span>. 10. ed. São Paulo: Pearson Education do Brasil, 2019. 768 p. ISBN 978-8543024974.
+    </p>
+
+    <p>
+      TANENBAUM, Andrew S.; WETHERALL, David J. <span class="destaque-abnt">Redes de Computadores</span>. 5. ed. São Paulo: Pearson Prentice Hall, 2011. 600 p. ISBN 978-8576059240.
+    </p>
+
+    <p>
+      WMO — WORLD METEOROLOGICAL ORGANIZATION. <span class="destaque-abnt">Guide to Meteorological Instruments and Methods of Observation (WMO-No. 8)</span>: volume III — observing systems. Geneva: World Meteorological Organization, 2018. 182 p. ISBN 978-92-63-10008-5. Disponível em: https://library.wmo.int/records/item/41650-guide-to-instruments-and-methods-of-observation. Acesso em: 05 nov. 2026.
+    </p>
+  </div>
+
+</body>
+</html>

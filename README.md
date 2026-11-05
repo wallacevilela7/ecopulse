@@ -29,14 +29,17 @@ ecopulse/
 │       └── deploy.yml                     # Pipeline CI/CD (Pytest + Deploy Zero-Downtime AWS EC2)
 │
 ├── docs/                                  # Documentação formal de engenharia (PIM II)
-│   ├── arquitetura.md                     # Visão sistêmica e camadas arquiteturais
+│   ├── arquitetura.md                     # Arquitetura Dual-Pipeline (Hot/Cold Path e PostgreSQL)
 │   ├── fluxo-dados.md                     # Topologia em nuvem, ciclo de dados e isolamento do BD
+│   ├── referencias_tecnicas_abnt.pdf      # Documento técnico ABNT com fundamentação e normas WMO/INMET
+│   ├── gerar_referencias_abnt.py          # Script de compilação do documento ABNT
 │   ├── diagrama_classes.md                # Diagramas de classes UML estruturais
 │   ├── diagrama_sequencia.md              # Sequência temporal e fluxos de telemetria
 │   ├── modelo_dados.md                    # Modelagem relacional e índices do PostgreSQL/SQLite
 │   ├── contrato_api.md                    # Especificação OpenAPI/REST e schemas
 │   ├── relatorio_tecnico_integracao_telemetria.md # Relatório técnico de bancada e diagnóstico
 │   ├── implementacao_infraestrutura_cloud_aws.md  # Arquitetura e dimensionamento AWS
+│   ├── archive/                           # [ARQUIVO] Versões arquiteturais legadas (v1)
 │   ├── assets/                            # Imagens e esquemáticos da documentação
 │   └── contratos/                         # Payloads JSON versionados de exemplo
 │

@@ -1,103 +1,93 @@
-# Fluxo de Dados e Topologia de Nuvem Unificada - EcoPulse
+# Fluxo de Dados e Topologia de Nuvem: Hot/Cold Path - EcoPulse
 
-> **Documento de Arquitetura e Engenharia de Infraestrutura**  
+> **Documento de Arquitetura de Nuvem e Ciclo de Vida da Informação**  
 > **Projeto Integrado Multidisciplinar II (PIM II) — UNIP**  
-> **Topologia:** Host Único EC2 (Free Tier) com Docker Compose, Nginx Reverse Proxy, FastAPI e PostgreSQL Isolado.
+> **Padrão:** Separação entre Fluxo em Tempo Real (In-Memory Hot Path) e Persistência Otimizada (Cold Path em PostgreSQL)
 
 ---
 
-## 1. Visão Geral da Arquitetura Unificada
-
-Para equilibrar custo computacional zero (compatível com a camada gratuita AWS Free Tier `t2.micro`), alta segurança e facilidade de manutenção sem a complexidade excessiva de gerenciar múltiplos serviços desintegrados (ECS, RDS e S3 separados), o ecossistema **EcoPulse** adota uma arquitetura conteinerizada coesa operando sob orquestração de rede privada.
+## 1. Topologia Integrada da Infraestrutura
 
 ```
-[Mundo Físico / Bancada de Sensores]
+[Bancada de Hardware / Nó Físico ESP32]
 ┌────────────────────────────────────────────────────────┐
 │  Estação EcoPulse (ESP32 NodeMCU)                      │
-│  - Cluster ADC1: MQ-135, LDR, Sensor Chuva             │
-│  - Digital / I2C: DHT22, BMP280                        │
-│  - Firmware C++ não-bloqueante (Loop 10s)              │
+│  - Leitura não-bloqueante dos 5 sensores               │
+│  - Transmissão contínua: HTTP POST a cada 2.5s         │
 └──────────────────────────┬─────────────────────────────┘
                            │
-                           │ HTTP/HTTPS POST /api/v1/telemetry
-                           │ Payload JSON + Header X-API-Key
-                           ▼ (Internet Pública via Wi-Fi)
-[Nuvem AWS - Instância EC2 t2.micro]
+                           │ HTTP/HTTPS POST /api/v1/telemetry (JSON + X-API-Key)
+                           ▼ (Internet Pública / Wi-Fi)
+[Instância AWS EC2 (Free Tier) - Docker Compose]
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ Host Linux (Ubuntu Server LTS)                                          │
-│                                                                         │
-│  Portas Públicas Expostas no Security Group:                            │
-│  - Porta 80 (HTTP) e 443 (HTTPS)                                        │
-│  - Porta 22 (SSH restrito para CI/CD e manutenção)                      │
+│ Host Linux (Ubuntu LTS)                                                 │
 │                                                                         │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │ Container: Nginx (Porteiro / Reverse Proxy & Web Server)          │  │
-│  │ Ouve nas portas públicas 80/443                                   │  │
+│  │ Container: Nginx (Porteiro / Reverse Proxy) - Porta Pública 80    │  │
 │  └───────────────┬──────────────────────────────────▲────────────────┘  │
 │                  │                                  │                   │
-│   Roteamento /api/* para o Backend     Entrega estáticos do Frontend    │
-│   (proxy_pass http://backend:8000)     (HTML5 / CSS Apple / Vanilla JS) │
+│   Proxy pass /api/* para o Backend     Entrega estáticos do Frontend    │
+│   (proxy_buffering off para SSE)       (HTML5 / CSS Apple / JS)         │
 │                  │                                  │                   │
 │                  ▼                                  │                   │
-│  ┌──────────────────────────────────┐   ┌───────────┴────────────────┐  │
-│  │ Container: API Backend (FastAPI) │   │ Volume Estático /frontend  │  │
-│  │ - Pydantic v2 (Validação estrita)│   │ Interface SPA Estilo iOS   │  │
-│  │ - Regras de negócio e telemetria │   │ Cards, Gráficos e Mapas    │  │
-│  │ - SQLAlchemy ORM                 │   └────────────────────────────┘  │
-│  └───────────────┬──────────────────┘                                   │
-│                  │                                                      │
-│                  │ Conexão SQL Interna (Rede Docker "ecopulse_net")     │
-│                  │ Host: "postgres:5432"                                │
-│                  ▼                                                      │
-│  ┌──────────────────────────────────┐                                   │
-│  │ Container: PostgreSQL 16 Alpine  │                                   │
-│  │ - Porta 5432 FECHADA para a web  │                                   │
-│  │ - Persistência: volume docker    │                                   │
-│  │   "postgres_data" no disco EC2   │                                   │
-│  └──────────────────────────────────┘                                   │
+│  ┌──────────────────────────────────────────────────┴────────────────┐  │
+│  │ Container: API Backend (FastAPI Core)                             │  │
+│  │                                                                   │  │
+│  │  ┌─────────────────────────────────────────────────────────────┐  │  │
+│  │  │ HOT PATH (Memória RAM - Zero I/O de Disco)                  │  │  │
+│  │  │ - Cache de estado instantâneo (In-Memory State)             │  │  │
+│  │  │ - TelemetryBroadcaster (asyncio.Queue Pub/Sub)              │  │  │
+│  │  │ - Canal SSE /api/v1/telemetry/stream (Latência < 15ms)      │  │  │
+│  │  └──────────────────────────────┬──────────────────────────────┘  │  │
+│  │                                 │ (Entrega instantânea na tela)   │  │
+│  │                                 ▼                                 │  │
+│  │                     [ Dashboard Web SPA ]                         │  │
+│  │                                                                   │  │
+│  │  ┌─────────────────────────────────────────────────────────────┐  │  │
+│  │  │ COLD PATH (Persistência Otimizada no PostgreSQL)            │  │  │
+│  │  │ - Buffer Agregador Temporal (Janela de 5 minutos)           │  │  │
+│  │  │ - Detector de Anomalias / Deadband (Chuva, Barômetro, Gás)  │  │  │
+│  │  │ - Redução de 99,17% no volume de escrita                    │  │  │
+│  │  └──────────────────────────────┬──────────────────────────────┘  │  │
+│  └─────────────────────────────────┼─────────────────────────────────┘  │
+│                                    │ Conexão SQL Interna                │
+│                                    │ (Rede Docker "ecopulse_net")       │
+│                                    ▼                                    │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │ Container: PostgreSQL 16 Alpine                                   │  │
+│  │ - Porta 5432 protegida (NÃO exposta à Internet)                   │  │
+│  │ - Persistência: volume permanente "postgres_data" no disco EC2    │  │
+│  │ - Tabelas: tb_telemetry_aggregated_5m e tb_telemetry_events       │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Ciclo de Vida da Informação e Comunicação
+## 2. Ciclo de Vida da Telemetria
 
-### 2.1. Ingestão de Dados (ESP32 $\rightarrow$ Nuvem)
-1. O microcontrolador ESP32 amostra os 5 sensores em intervalos periódicos (10 segundos).
-2. Empacota a leitura em formato JSON estruturado com métricas climáticas e diagnósticos (Wi-Fi RSSI, uptime, heap).
-3. Abre conexão TCP com a porta 80/443 da instância AWS EC2 enviando a chave de segurança `X-API-Key`.
-4. O **Nginx** recebe a requisição, reconhece o prefixo `/api/` e faz o repasse transparente (*reverse proxy*) para o socket interno do **FastAPI** (`backend:8000`).
-5. O FastAPI valida o esquema via Pydantic e grava o registro na tabela `tb_telemetry_records` do **PostgreSQL** por meio de conexão autenticada na rede interna isolada.
-6. A resposta `HTTP 201 Created` é retornada ao ESP32, fechando o ciclo em menos de 100ms.
+### 2.1. O Caminho Quente (Hot Path — Da Amostra ao Pixel na Tela)
+1. **Amostragem:** O ESP32 realiza a leitura física dos sensores na bancada e transmite via `POST /api/v1/telemetry`.
+2. **Ingestão em Memória:** O FastAPI valida as credenciais (`X-API-Key`) e o esquema Pydantic, atualizando uma estrutura de dados volátil na memória RAM.
+3. **Distribuição Reativa:** O `TelemetryBroadcaster` injeta o payload imediatamente na fila assíncrona de cada cliente Web conectado ao endpoint de streaming SSE (`/api/v1/telemetry/stream`).
+4. **Renderização Visual:** O JavaScript do navegador recebe o frame em menos de **15 milissegundos**, dispara os *flashes* sutis de oscilação nos cards Apple e atualiza o Chart.js.
+5. **Benefício de Engenharia:** Não ocorre nenhuma chamada ao PostgreSQL para a visualização ao vivo. A tela é fluida e o banco de dados não sofre contenção.
 
-### 2.2. Visualização do Usuário (Navegador $\rightarrow$ Dashboard)
-1. O usuário acessa a URL raiz `http://ec2-dominio.com/` pelo navegador de seu smartphone ou desktop.
-2. O **Nginx** serve instantaneamente os arquivos estáticos pré-renderizados (`index.html`, `styles.css`, `app.js`).
-3. O script cliente assíncrono executa uma chamada `GET /api/v1/telemetry/latest` e `GET /api/v1/telemetry/history`.
-4. Como a requisição é feita para a mesma origem (`/api/...`), **não há bloqueios de CORS** nem necessidade de configurar IPs distintos.
-5. Os dados alimentam os medidores, os gráficos temporais e a localização no mapa com design responsivo no padrão Apple/iOS.
-
----
-
-## 3. Segurança e Isolamento do Banco de Dados
-
-* **Nenhuma Exposição Pública:** A porta `5432` do PostgreSQL não possui mapeamento no host da EC2 (`ports:` não exposto para a máquina hospedeira), tornando matematicamente impossível qualquer ataque externo de força bruta ou varredura de portas contra o banco de dados.
-* **Rede Interna Bridge do Docker:** Apenas os containers pertencentes à rede `ecopulse_net` conseguem resolver o hostname `postgres` e estabelecer comunicação TCP.
-* **Persistência de Dados (Data Durability):** Todos os dados relacionais são persistidos no volume nomeado `postgres_data`, localizado no sistema de arquivos permanente da EC2 (`/var/lib/docker/volumes/...`). Mesmo que containers sofram reinicialização ou atualização de imagem, as séries temporais permanecem intactas.
+### 2.2. O Caminho Frio (Cold Path — Da Amostra ao Registro Histórico no PostgreSQL)
+1. **Bufferização e Estatística:** Paralelamente à exibição em tela, cada amostra é acumulada em uma fila de buffer em memória.
+2. **Condição Normal (Janela de 5 Minutos):**
+   * A cada 300 segundos, o buffer encerra o período (~120 amostras).
+   * Calcula: Médias aritméticas, valores mínimos e valores máximos de Temperatura, Umidade, Pressão, Qualidade do Ar e Luz, além do índice de precipitação acumulada.
+   * Executa um único `INSERT` na tabela `tb_telemetry_aggregated_5m`.
+   * Esvazia o buffer e inicia a próxima janela.
+3. **Condição de Exceção (Disparo por Deadband / Anomalia):**
+   * Se o sensor de chuva indicar início de precipitação, se o barômetro registrar queda abrupta ($\Delta P \ge 2\text{ hPa}$) ou se o MQ-135 acusar salto de gases, o sistema grava imediatamente uma linha na tabela `tb_telemetry_events`.
+   * Essa estratégia preserva a integridade de eventos críticos com resolução de segundos, sem sobrecarregar a rotina normal do banco.
 
 ---
 
-## 4. Estratégia de Deploy e CI/CD Zero-Downtime
+## 3. Segurança e Isolamento Operacional
 
-O fluxo de atualização contínua é gerenciado pelo **GitHub Actions**:
-1. **Etapa de Integração Contínua (CI):**
-   * Linter estático e testes unitários automatizados com `pytest` cobrindo o backend.
-2. **Etapa de Entrega Contínua (CD):**
-   * Disparada apenas em commits na branch `main`.
-   * Conexão segura via SSH com a instância EC2.
-   * Execução de *rolling update* do Docker Compose:
-     ```bash
-     docker compose pull
-     docker compose up -d --no-deps --build backend
-     ```
-   * O container anterior do FastAPI só é substituído quando o novo container passa no healthcheck interno, garantindo que o ESP32 e os usuários nunca recebam erro 502/503.
+* **PostgreSQL Isolado na Rede Privada:** A porta `5432` permanece sem qualquer exposição para fora da máquina EC2, acessível apenas pelo hostname `db:5432` dentro da rede Docker `ecopulse_net`.
+* **Zero-Downtime Rolling Update:** A esteira CI/CD atualiza a API backend sem derrubar o container do PostgreSQL nem interromper a persistência do volume `postgres_data`.
+* **Histórico de Versões:** O fluxo legado v1 (gravação direta a cada tick) encontra-se arquivado para consultas em [**`ecopulse/docs/archive/fluxo_dados_v1_legado.md`**](file:///home/wvs/Documents/pim2/ecopulse/docs/archive/fluxo_dados_v1_legado.md).

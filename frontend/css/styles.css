@@ -4,19 +4,19 @@
    ========================================================================== */
 
 :root {
-  --sky-top: #2c3646;
-  --sky-mid: #1c2432;
-  --sky-bottom: #101620;
+  --bg-top: #131820;
+  --bg-mid: #0f131a;
+  --bg-bottom: #0a0d12;
 
-  --ios-card-bg: rgba(33, 42, 57, 0.64);
-  --ios-card-bg-hover: rgba(40, 51, 69, 0.74);
-  --ios-card-border: rgba(255, 255, 255, 0.09);
-  --ios-divider: rgba(255, 255, 255, 0.11);
+  --ios-card-bg: rgba(23, 29, 39, 0.82);
+  --ios-card-bg-hover: rgba(29, 37, 49, 0.9);
+  --ios-card-border: rgba(255, 255, 255, 0.075);
+  --ios-divider: rgba(255, 255, 255, 0.085);
 
-  --text-white: #ffffff;
-  --text-soft: rgba(255, 255, 255, 0.82);
-  --text-muted: rgba(255, 255, 255, 0.54);
-  --text-dim: rgba(255, 255, 255, 0.36);
+  --text-white: #f8fafc;
+  --text-soft: rgba(248, 250, 252, 0.82);
+  --text-muted: rgba(148, 163, 184, 0.78);
+  --text-dim: rgba(148, 163, 184, 0.45);
 
   --ios-blue: #0A84FF;
   --ios-cyan: #5AC8FA;
@@ -44,7 +44,7 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
-  background-color: var(--sky-bottom);
+  background-color: var(--bg-bottom);
   color: var(--text-white);
   font-family: var(--font-sf);
 }
@@ -57,53 +57,14 @@ body {
 }
 
 /* ==========================================================================
-   Fundo Atmosférico de Céu Nublado / Noturno estilo Apple Weather
+   Fundo Sóbrio Estático (Carbon Slate / Graphite Pro — Sem Efeitos de Clima)
    ========================================================================== */
-.ios-sky-background {
+.sober-app-background {
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 44%, var(--sky-bottom) 100%);
-  overflow: hidden;
-  transition: background 1.2s ease;
-}
-
-.cloud-layer {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(55px);
-  opacity: 0.42;
-  pointer-events: none;
-}
-
-.cloud-1 {
-  width: 110vw;
-  height: 290px;
-  top: -40px;
-  left: -10vw;
-  background: radial-gradient(ellipse at center, rgba(148, 163, 184, 0.42) 0%, rgba(71, 85, 105, 0.12) 65%, transparent 100%);
-  animation: driftCloud 28s ease-in-out infinite alternate;
-}
-
-.cloud-2 {
-  width: 95vw;
-  height: 240px;
-  top: 75px;
-  right: -15vw;
-  background: radial-gradient(ellipse at center, rgba(100, 116, 139, 0.35) 0%, rgba(30, 41, 59, 0.08) 70%, transparent 100%);
-  animation: driftCloud 34s ease-in-out infinite alternate-reverse;
-}
-
-.sky-vignette {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 50% 18%, transparent 0%, rgba(10, 15, 24, 0.45) 100%);
-}
-
-@keyframes driftCloud {
-  0% { transform: translateX(-25px) translateY(0) scale(1); }
-  100% { transform: translateX(25px) translateY(12px) scale(1.05); }
+  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 50%, var(--bg-bottom) 100%);
 }
 
 /* ==========================================================================

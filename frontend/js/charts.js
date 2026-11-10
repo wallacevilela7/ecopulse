@@ -85,6 +85,38 @@ window.EcoPulseCharts = (function () {
       };
     }
 
+    if (mode === "light_air") {
+      const lights = series.map((x) => extractMetric(x, "luminosity_pct", "luminosity_avg"));
+      const aqis = series.map((x) => extractMetric(x, "air_quality_ppm", "air_quality_avg"));
+      return {
+        datasets: [
+          {
+            label: "Luminosidade (%)",
+            data: lights,
+            borderColor: t.amber,
+            backgroundColor: t.amberFill,
+            borderWidth: 2.5,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            fill: true,
+            tension: 0.35,
+          },
+          {
+            label: "Qualidade do ar (ppm)",
+            data: aqis,
+            borderColor: "#10b981",
+            backgroundColor: "transparent",
+            borderWidth: 2,
+            borderDash: [4, 4],
+            pointRadius: 2.5,
+            fill: false,
+            tension: 0.35,
+          },
+        ],
+        unitSuffix: "",
+      };
+    }
+
     if (mode === "pressure") {
       const press = series.map((x) => extractMetric(x, "pressure_hpa", "pressure_avg"));
       return {

@@ -162,3 +162,63 @@ def test_cold_path_deadband_anomaly_rain_and_events():
     events = client.get("/api/v1/telemetry/events").json()
     assert len(events) >= 1
     assert events[0]["event_type"] == "RAIN_STARTED"
+
+
+
+def _payload_luz(luz: float) -> dict:
+    """Payload estável em todos os sensores, variando apenas o LDR."""
+    return {
+        "device_id": "esp32-meteo-01",
+        "sensors": {
+            "temperature_c": 22.0,
+            "humidity_pct": 65.0,
+            "pressure_hpa": 933.0,
+            "air_quality_ppm": 10.0,
+            "luminosity_pct": luz,
+            "rain_intensity_pct": 0.0,
+            "is_raining": False,
+        },
+    }
+
+
+def test_deadband_ldr_luminosity_shift():
+    headers = {"X-API-Key": API_SECRET_KEY}
+
+    # Boot com luz moderada (40%)
+    client.post("/api/v1/telemetry", json=_payload_luz(40.0), headers=headers)
+
+    # Variação pequena (Δ = 5%): fica só no Hot Path, sem gravar no banco
+    r_small = client.post("/api/v1/telemetry", json=_payload_luz(45.0), headers=headers).json()
+    assert r_small["cold_path_persisted"] is False
+
+    # LED apontado para o LDR (Δ = +47%): dispara evento de Deadband
+    r_jump = client.post("/api/v1/telemetry", json=_payload_luz(92.0), headers=headers).json()
+    assert r_jump["cold_path_persisted"] is True
+    assert r_jump["persistence_reason"] == "DEADBAND_EVENT"
+
+    events = client.get("/api/v1/telemetry/events").json()
+    assert events[0]["event_type"] == "LUMINOSITY_SHIFT"
+
+    # O valor novo também está disponível imediatamente no Hot Path (o que o SSE envia ao front)
+    latest = client.get("/api/v1/telemetry/latest").json()
+    assert latest["sensors"]["luminosity_pct"] == 92.0
+
+
+def test_deadband_ldr_rapid_bidirectional_shifts():
+    headers = {"X-API-Key": API_SECRET_KEY}
+
+    client.post("/api/v1/telemetry", json=_payload_luz(40.0), headers=headers)
+    r_up = client.post("/api/v1/telemetry", json=_payload_luz(92.0), headers=headers).json()
+    assert r_up["cold_path_persisted"] is True
+    assert r_up["persistence_reason"] == "DEADBAND_EVENT"
+
+    # Queda brusca de luminosidade logo em seguida também deve ser persistida imediatamente
+    r_down = client.post("/api/v1/telemetry", json=_payload_luz(25.0), headers=headers).json()
+    assert r_down["cold_path_persisted"] is True
+    assert r_down["persistence_reason"] == "DEADBAND_EVENT"
+
+    latest = client.get("/api/v1/telemetry/latest").json()
+    assert latest["sensors"]["luminosity_pct"] == 25.0
+
+    history = client.get("/api/v1/telemetry/history").json()
+    assert history[-1]["sensors"]["luminosity_pct"] == 25.0

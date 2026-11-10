@@ -25,6 +25,16 @@
   let eventSource = null;
   let historyLimit = 24;
   let previousPressure = null;
+  let cachedHistoryList = [];
+  let cachedEventsList = [];
+
+  function parseIsoDate(isoStr) {
+    if (!isoStr) return new Date(NaN);
+    const s = String(isoStr).trim();
+    // Se vier do SQLite sem sufixo de fuso (UTC naive), adiciona "Z" para converter corretamente para horário local
+    const normalized = s.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(s) ? s : `${s}Z`;
+    return new Date(normalized);
+  }
 
   function fmtNum(val, decimals = 1, fallback = "--") {
     if (val === null || val === undefined || Number.isNaN(Number(val))) {
@@ -35,7 +45,7 @@
 
   function fmtTime(isoStr, withSeconds = false) {
     if (!isoStr) return "--:--";
-    const d = new Date(isoStr);
+    const d = parseIsoDate(isoStr);
     if (Number.isNaN(d.getTime())) return "--:--";
     return d.toLocaleTimeString("pt-BR", {
       hour: "2-digit",
@@ -325,12 +335,41 @@
               <span class="ct-max">${fmtNum(tMax, 1)}°</span>
             </div>
             <div class="ct-meta-col">
-              Umid. ${fmtNum(d.humPct, 0)}%
+              Luz ${fmtNum(d.lightPct, 0)}% • Umid. ${fmtNum(d.humPct, 0)}%
             </div>
           </div>
         `;
       })
       .join("");
+  }
+
+  // Exibe o banner de evento. Alertas WARNING/CRITICAL ficam por 15 min;
+  // eventos informativos (ex.: mudança de luminosidade) aparecem por 20 s e somem sozinhos.
+  let bannerHideTimer = null;
+  const INFO_BANNER_MS = 20000;
+  const ALERT_BANNER_MIN = 15;
+
+  function showEventBanner(ev) {
+    const banner = document.getElementById("alert-banner");
+    if (!banner || !ev) return;
+
+    const evDate = parseIsoDate(ev.recorded_at);
+    const ageMs = Number.isNaN(evDate.getTime()) ? 0 : Math.max(0, Date.now() - evDate.getTime());
+    const isInfo = ev.severity === "INFO";
+    const maxAgeMs = isInfo ? INFO_BANNER_MS : ALERT_BANNER_MIN * 60000;
+    if (ageMs > maxAgeMs) {
+      banner.classList.add("hidden");
+      return;
+    }
+
+    banner.classList.remove("hidden");
+    banner.classList.toggle("is-info", isInfo);
+    document.getElementById("alert-title").textContent = ev.title;
+    document.getElementById("alert-description").textContent = ev.description;
+    document.getElementById("alert-time").textContent = fmtTime(ev.recorded_at, true);
+
+    clearTimeout(bannerHideTimer);
+    bannerHideTimer = setTimeout(() => banner.classList.add("hidden"), maxAgeMs - ageMs);
   }
 
   function renderEventsList(eventsList) {
@@ -350,18 +389,7 @@
       return;
     }
 
-    const latest = eventsList[0];
-    if (banner && latest) {
-      const ageMin = (Date.now() - new Date(latest.recorded_at).getTime()) / 60000;
-      if (ageMin <= 15 && latest.severity !== "INFO") {
-        banner.classList.remove("hidden");
-        document.getElementById("alert-title").textContent = latest.title;
-        document.getElementById("alert-description").textContent = latest.description;
-        document.getElementById("alert-time").textContent = fmtTime(latest.recorded_at);
-      } else {
-        banner.classList.add("hidden");
-      }
-    }
+    showEventBanner(eventsList[0]);
 
     if (container) {
       container.innerHTML = eventsList
@@ -398,15 +426,17 @@
 
       if (historyRes.ok) {
         const history = await historyRes.json();
-        renderClimatempoList(history);
+        cachedHistoryList = Array.isArray(history) ? history : [];
+        renderClimatempoList(cachedHistoryList);
         if (window.EcoPulseCharts) {
-          window.EcoPulseCharts.renderOrUpdate(history);
+          window.EcoPulseCharts.renderOrUpdate(cachedHistoryList);
         }
       }
 
       if (eventsRes.ok) {
         const events = await eventsRes.json();
-        renderEventsList(events);
+        cachedEventsList = Array.isArray(events) ? events : [];
+        renderEventsList(cachedEventsList);
       }
 
       if (healthRes.ok) {
@@ -440,8 +470,32 @@
         if (window.EcoPulseCharts) {
           window.EcoPulseCharts.pushLiveSample(packet, historyLimit);
         }
-        if (packet.pipeline && packet.pipeline.cold_path_persisted) {
-          syncAllData();
+
+        // Atualiza imediatamente a lista de medições em tela a cada pacote SSE recebido
+        const ts = packet.recorded_at || packet.window_end;
+        if (cachedHistoryList.length > 0) {
+          const last = cachedHistoryList[cachedHistoryList.length - 1];
+          if ((last.recorded_at || last.window_end) === ts) {
+            cachedHistoryList[cachedHistoryList.length - 1] = packet;
+          } else {
+            cachedHistoryList.push(packet);
+          }
+        } else {
+          cachedHistoryList = [packet];
+        }
+        if (cachedHistoryList.length > historyLimit) {
+          cachedHistoryList = cachedHistoryList.slice(-historyLimit);
+        }
+        renderClimatempoList(cachedHistoryList);
+
+        // Evento de Deadband (LDR, chuva, pressão, gás, temperatura, umidade): mostra na hora
+        if (packet.latest_event) {
+          showEventBanner(packet.latest_event);
+          cachedEventsList = [
+            packet.latest_event,
+            ...cachedEventsList.filter((e) => e.id !== packet.latest_event.id),
+          ].slice(0, 15);
+          renderEventsList(cachedEventsList);
         }
       } catch (err) {
         console.error("[EcoPulse] Erro no pacote SSE:", err);
@@ -531,6 +585,6 @@
     if (window.EcoPulseMap) window.EcoPulseMap.init();
     syncAllData();
     connectRealtimeStream();
-    setInterval(syncAllData, 15000);
+    setInterval(syncAllData, 3000);
   });
 })();

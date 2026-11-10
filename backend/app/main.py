@@ -9,6 +9,7 @@ import os
 import re
 import time
 import json
+import signal
 import asyncio
 import urllib.request
 from collections import deque
@@ -33,6 +34,10 @@ load_dotenv()
 API_SECRET_KEY = os.getenv("API_SECRET_KEY", "chave-secreta-estacao-unip-2026")
 COLD_PATH_WINDOW_SECONDS = int(os.getenv("COLD_PATH_WINDOW_SECONDS", "300"))  # 5 minutos (padrão WMO/Davis)
 ESP32_MDNS_RAW_URL = os.getenv("ESP32_MDNS_RAW_URL", "http://esp32.local/raw")
+
+# Cooldown de eventos de variação contínua (evita rajadas de gravação quando o sensor oscila no limiar)
+EVENT_COOLDOWN_SECONDS = int(os.getenv("EVENT_COOLDOWN_SECONDS", "30"))
+COOLDOWN_EVENT_TYPES = {"LUMINOSITY_SHIFT", "HUMIDITY_SHIFT", "THERMAL_SURGE"}
 
 
 # =========================================================================
@@ -86,6 +91,7 @@ class HotColdTelemetryEngine:
         self.total_hot_ticks: int = 0
         self.total_cold_writes: int = 0
         self.last_direct_push_ts: float = 0.0
+        self.last_event_ts: Dict[tuple, float] = {}
 
     def reset_state(self):
         """Reinicia o estado em memória (útil para suíte de testes automatizados)."""
@@ -98,6 +104,7 @@ class HotColdTelemetryEngine:
         self.total_hot_ticks = 0
         self.total_cold_writes = 0
         self.last_direct_push_ts = 0.0
+        self.last_event_ts.clear()
 
     def _update_extremes(self, device_id: str, s: dict):
         ext = self.daily_extremes.get(device_id)
@@ -212,6 +219,33 @@ class HotColdTelemetryEngine:
                 "description": f"Temperatura variou rapidamente de {t_prev:.1f}°C para {t_curr:.1f}°C.",
             }
 
+        # 5. Variação Brusca de Luminosidade no LDR (Δ >= 15 %)
+        # Mesmo limiar usado pelo firmware para disparo imediato (mudancaLuz em main.cpp)
+        l_prev = prev_s.get("luminosity_pct")
+        l_curr = curr_sensors.get("luminosity_pct")
+        if l_prev is not None and l_curr is not None and abs(l_curr - l_prev) >= 15.0:
+            direcao_luz = "Aumento" if l_curr > l_prev else "Queda"
+            return {
+                "event_type": "LUMINOSITY_SHIFT",
+                "severity": "INFO",
+                "title": f"{direcao_luz} Brusca de Luminosidade",
+                "description": (
+                    f"Sensor LDR variou de {l_prev:.0f}% para {l_curr:.0f}% "
+                    f"(Δ = {l_curr - l_prev:+.0f}%)."
+                ),
+            }
+
+        # 6. Variação Abrupta de Umidade Relativa (Δ >= 8 %)
+        h_prev = prev_s.get("humidity_pct")
+        h_curr = curr_sensors.get("humidity_pct")
+        if h_prev is not None and h_curr is not None and abs(h_curr - h_prev) >= 8.0:
+            return {
+                "event_type": "HUMIDITY_SHIFT",
+                "severity": "INFO",
+                "title": "Oscilação Rápida de Umidade",
+                "description": f"Umidade relativa variou de {h_prev:.0f}% para {h_curr:.0f}%.",
+            }
+
         return None
 
     def flush_window_to_db(self, db: Session, device_id: str, now: datetime) -> TelemetryAggregated5m:
@@ -306,19 +340,25 @@ async def _ingest_telemetry_payload(payload: TelemetryPayload, db: Session) -> T
         telemetry_engine.window_samples[dev_id] = []
         telemetry_engine.window_start_by_device[dev_id] = agora
 
-    telemetry_engine.window_samples[dev_id].append(hot_packet)
+    # Avalia regras do Cold Path (1: Boot inicial, 2: Deadband Anomaly, 3: Janela de 5 minutos)
+    anomaly = telemetry_engine.detect_deadband_anomaly(prev_sample, s_dict)
+    is_initial_boot = dev_id not in telemetry_engine.persisted_once_devices
+    elapsed_sec = (agora - telemetry_engine.window_start_by_device[dev_id]).total_seconds()
+    is_window_expired = elapsed_sec >= COLD_PATH_WINDOW_SECONDS
+
+    # Se houve mudança brusca (Deadband), reinicia a janela com a leitura atual para não diluir o salto na média anterior
+    if anomaly:
+        telemetry_engine.window_samples[dev_id] = [hot_packet]
+        telemetry_engine.window_start_by_device[dev_id] = agora
+    else:
+        telemetry_engine.window_samples[dev_id].append(hot_packet)
+
     telemetry_engine.latest_by_device[dev_id] = hot_packet
     telemetry_engine.total_hot_ticks += 1
 
     if dev_id not in telemetry_engine.live_ring_by_device:
         telemetry_engine.live_ring_by_device[dev_id] = deque(maxlen=30)
     telemetry_engine.live_ring_by_device[dev_id].append(hot_packet)
-
-    # Avalia regras do Cold Path (1: Boot inicial, 2: Deadband Anomaly, 3: Janela de 5 minutos)
-    anomaly = telemetry_engine.detect_deadband_anomaly(prev_sample, s_dict)
-    is_initial_boot = dev_id not in telemetry_engine.persisted_once_devices
-    elapsed_sec = (agora - telemetry_engine.window_start_by_device[dev_id]).total_seconds()
-    is_window_expired = elapsed_sec >= COLD_PATH_WINDOW_SECONDS
 
     cold_persisted = False
     reason = "HOT_PATH_MEMORY_ONLY"
@@ -476,6 +516,25 @@ async def _esp32_mdns_bridge_loop():
 async def lifespan(app: FastAPI):
     """Inicializa as tabelas do Cold Path e a ponte mDNS resiliente no boot da aplicação (apenas em ambiente local)."""
     shutdown_event.clear()
+
+    # Evita deadlock no desligamento/reload: o Uvicorn espera as conexões abertas terminarem
+    # antes de rodar o shutdown do lifespan, mas os streams SSE só terminam quando
+    # shutdown_event é setado. Encadeamos ao handler original do Uvicorn para sinalizar
+    # os streams assim que SIGINT/SIGTERM chegar.
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        original_handler = signal.getsignal(sig)
+
+        def _on_shutdown_signal(signum, frame, _orig=original_handler):
+            loop.call_soon_threadsafe(shutdown_event.set)
+            if callable(_orig):
+                _orig(signum, frame)
+
+        try:
+            signal.signal(sig, _on_shutdown_signal)
+        except ValueError:
+            pass  # Fora da thread principal (ex.: TestClient) — não se aplica
+
     Base.metadata.create_all(bind=engine)
     bridge_task = None
     if "PYTEST_CURRENT_TEST" not in os.environ and os.getenv("APP_ENV") != "production":
@@ -646,14 +705,14 @@ def obter_historico_telemetria(
     ultimos_db = query.order_by(TelemetryAggregated5m.window_end.desc()).limit(limit).all()
     cronologicos = [r.to_dict() for r in reversed(ultimos_db)]
 
-    # Se houver menos de 6 pontos no banco e existir ring-buffer em RAM, mescla os ticks recentes
+    # Mescla sempre os ticks recentes do ring-buffer em RAM (Hot Path) posteriores à última janela do banco
     ring_target = None
     if device_id and device_id in telemetry_engine.live_ring_by_device:
         ring_target = list(telemetry_engine.live_ring_by_device[device_id])
     elif not device_id and telemetry_engine.live_ring_by_device:
         ring_target = list(next(iter(telemetry_engine.live_ring_by_device.values())))
 
-    if ring_target and len(cronologicos) < 6:
+    if ring_target:
         existing_ts = {item.get("recorded_at") for item in cronologicos}
         for sample in ring_target:
             if sample.get("recorded_at") not in existing_ts:

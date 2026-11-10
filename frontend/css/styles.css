@@ -1,957 +1,887 @@
 /* ==========================================================================
-   EcoPulse — Design System Apple iOS Weather (Fidelidade Visual & Responsivo)
-   Primeira Dobra: Dados Atuais + Peek do Dashboard | Segunda Dobra: Bento Grid
+   EcoPulse Clima — Design Limpo & Moderno
+   Inspiração: Climatempo (detalhes Mín/Máx e listas) + Google Weather (curva
+   suave e simplicidade) + Apple Weather (Bento Grid de condições e barras).
    ========================================================================== */
 
-:root {
-  --bg-top: #131820;
-  --bg-mid: #0f131a;
-  --bg-bottom: #0a0d12;
+:root,
+[data-theme="light"] {
+  --bg-page: #f2f5f9;
+  --bg-card: #ffffff;
+  --bg-subtle: #f8fafc;
+  --bg-pill: #f1f5f9;
+  --border-color: #e2e8f0;
+  --border-hover: #cbd5e1;
 
-  --ios-card-bg: rgba(23, 29, 39, 0.82);
-  --ios-card-bg-hover: rgba(29, 37, 49, 0.9);
-  --ios-card-border: rgba(255, 255, 255, 0.075);
-  --ios-divider: rgba(255, 255, 255, 0.085);
+  --text-main: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
 
-  --text-white: #f8fafc;
-  --text-soft: rgba(248, 250, 252, 0.82);
-  --text-muted: rgba(148, 163, 184, 0.78);
-  --text-dim: rgba(148, 163, 184, 0.45);
+  --accent-blue: #0284c7;
+  --accent-cyan: #06b6d4;
+  --accent-amber: #f59e0b;
+  --accent-orange: #ea580c;
+  --accent-green: #10b981;
+  --accent-purple: #6366f1;
+  --accent-red: #ef4444;
 
-  --ios-blue: #0A84FF;
-  --ios-cyan: #5AC8FA;
-  --ios-green: #30D158;
-  --ios-yellow: #FFD60A;
-  --ios-orange: #FF9F0A;
-  --ios-red: #FF453A;
-
-  --font-sf: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-
-  --radius-ios: 18px;
-  --radius-pill: 9999px;
-  --spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.03);
 }
 
-*, *::before, *::after {
+[data-theme="dark"] {
+  --bg-page: #0f172a;
+  --bg-card: #1e293b;
+  --bg-subtle: #162032;
+  --bg-pill: #334155;
+  --border-color: #334155;
+  --border-hover: #475569;
+
+  --text-main: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+
+  --accent-blue: #38bdf8;
+  --accent-cyan: #22d3ee;
+  --accent-amber: #fbbf24;
+  --accent-orange: #fb923c;
+  --accent-green: #34d399;
+  --accent-purple: #818cf8;
+  --accent-red: #f87171;
+
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.22);
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-html {
-  font-size: 16px;
-  scroll-behavior: smooth;
-  background-color: var(--bg-bottom);
-  color: var(--text-white);
-  font-family: var(--font-sf);
 }
 
 body {
-  min-height: 100vh;
-  overflow-x: hidden;
-  line-height: 1.4;
-  padding-bottom: 88px; /* Espaço para a barra inferior fixa do iOS */
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* ==========================================================================
-   Fundo Sóbrio Estático (Carbon Slate / Graphite Pro — Sem Efeitos de Clima)
-   ========================================================================== */
-.sober-app-background {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 50%, var(--bg-bottom) 100%);
-}
-
-/* ==========================================================================
-   Shell Responsivo Principal
-   ========================================================================== */
-.ios-weather-shell {
+.container {
   width: 100%;
-  max-width: 960px;
+  max-width: 1220px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 20px;
+}
+
+.hidden {
+  display: none !important;
 }
 
 /* ==========================================================================
-   PRIMEIRA DOBRA: Dados Atuais + "Peek" do Dashboard na Base
+   Barra de Navegação Limpa
    ========================================================================== */
-.first-fold-viewport {
-  min-height: calc(100vh - 20px);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 12px;
-  padding-top: 10px;
-  max-width: 540px;
-  margin: 0 auto;
+.navbar {
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 
-/* Barra discreta de status ao vivo no topo */
-.top-live-bar {
+.navbar-inner {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  padding: 2px 4px;
+  height: 62px;
 }
 
-.live-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--text-soft);
-}
-
-.pulse-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background-color: var(--ios-green);
-  box-shadow: 0 0 8px var(--ios-green);
-  animation: pulseDot 2s infinite ease-in-out;
-}
-
-@keyframes pulseDot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.82); }
-}
-
-.sync-clock {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ==========================================================================
-   HERO CENTRALIZADO (Idêntico ao iOS Weather da Foto)
-   ========================================================================== */
-.ios-hero {
+.brand {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  text-align: center;
-  padding: 12px 0 14px 0;
-  user-select: none;
+  gap: 12px;
 }
 
-.hero-home-tag {
-  display: inline-flex;
+.brand-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background-color: rgba(2, 132, 199, 0.12);
+  color: var(--accent-blue);
+  display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.7rem;
+  justify-content: center;
+}
+
+.brand-name {
+  font-size: 17px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-  margin-bottom: 2px;
-}
-
-.hero-home-tag svg {
-  transform: rotate(45deg);
-}
-
-.hero-city {
-  font-size: clamp(1.85rem, 5vw, 2.25rem);
-  font-weight: 400;
-  letter-spacing: -0.015em;
-  color: var(--text-white);
+  letter-spacing: -0.02em;
+  display: block;
   line-height: 1.15;
 }
 
-.hero-temperature {
-  position: relative;
+.brand-location {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  display: block;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.live-indicator {
   display: inline-flex;
-  align-items: flex-start;
-  justify-content: center;
-  font-size: clamp(5.2rem, 18vw, 6.4rem);
-  font-weight: 200;
-  letter-spacing: -0.04em;
-  line-height: 0.98;
-  color: var(--text-white);
-  margin: 2px 0 4px 12px; /* Compensação óptica do símbolo de grau */
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--accent-amber);
+}
+
+.live-dot.online {
+  background-color: var(--accent-green);
+}
+
+.live-dot.offline {
+  background-color: var(--accent-red);
+}
+
+.live-time {
+  color: var(--text-muted);
+  font-size: 12px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border-color);
   font-variant-numeric: tabular-nums;
 }
 
-.degree-symbol {
-  font-size: 0.45em;
-  font-weight: 200;
-  margin-top: 0.08em;
-}
-
-.hero-condition {
-  font-size: 1.18rem;
+.icon-btn,
+.clean-btn,
+.clean-select {
+  background-color: var(--bg-subtle);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--text-soft);
-  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-.hero-high-low {
-  display: inline-flex;
-  gap: 12px;
-  font-size: 0.98rem;
-  font-weight: 500;
-  color: var(--text-white);
-  margin-top: 2px;
-}
-
-.hero-high-low strong {
-  font-weight: 600;
+.icon-btn:hover,
+.clean-btn:hover,
+.clean-select:hover {
+  border-color: var(--border-hover);
 }
 
 /* ==========================================================================
-   Cartão Glassmorphism Padrão iOS Weather
+   Conteúdo Principal e Cards Base
    ========================================================================== */
-.ios-glass-card {
-  background: var(--ios-card-bg);
-  backdrop-filter: blur(28px) saturate(185%);
-  -webkit-backdrop-filter: blur(28px) saturate(185%);
-  border: 1px solid var(--ios-card-border);
-  border-radius: var(--radius-ios);
-  padding: 14px 16px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
-  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s var(--spring);
-}
-
-.ios-section-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--ios-divider);
-  margin-bottom: 10px;
-}
-
-/* ==========================================================================
-   CARD 1: Alerta Meteorológico ("Storm & 2 More" style)
-   ========================================================================== */
-.alert-banner-card {
+.main-content {
+  padding-top: 24px;
+  padding-bottom: 48px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 28px;
 }
 
-.alert-banner-card.alert-critical {
-  background: linear-gradient(145deg, rgba(68, 34, 42, 0.76), rgba(35, 42, 58, 0.72));
-  border-color: rgba(255, 69, 58, 0.35);
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
 }
 
-.alert-header {
+/* Banner de Alerta */
+.weather-alert {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background-color: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: var(--text-main);
 }
 
 .alert-icon {
-  color: var(--text-white);
-  flex-shrink: 0;
-}
-
-.alert-title {
-  font-size: 0.98rem;
-  font-weight: 700;
-  color: var(--text-white);
-  letter-spacing: -0.01em;
-}
-
-.alert-description {
-  font-size: 0.86rem;
-  color: var(--text-soft);
-  line-height: 1.38;
-}
-
-.alert-source {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-/* ==========================================================================
-   CARD 2: Condições Recentes ("Conditions" + Strip Horizontal da Foto)
-   ========================================================================== */
-.conditions-strip-card {
+  color: var(--accent-amber);
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.conditions-card-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
 }
 
-.conditions-titles {
+.alert-body {
+  flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
 }
 
-.card-main-heading {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-white);
-}
-
-.card-sub-heading {
-  font-size: 0.8rem;
+.alert-time {
+  font-size: 12.5px;
   color: var(--text-muted);
 }
 
-/* Seletor Pílula com 3 Ícones à Direita */
-.ios-icon-segmented {
+/* ==========================================================================
+   SEÇÃO 1: Tempo Agora (Card Google/Climatempo + Bento Grid iPhone)
+   ========================================================================== */
+.current-weather-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 980px) {
+  .current-weather-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card Principal (Esquerda) */
+.hero-weather-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.eyebrow-location {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-blue);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.city-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.condition-pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.hero-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 8px 0;
+}
+
+.hero-temp-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.weather-illustration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-temp-value {
+  font-size: 64px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: flex-start;
+}
+
+.temp-unit {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  margin-left: 2px;
+}
+
+.hero-summary-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+@media (max-width: 540px) {
+  .hero-summary-stats {
+    align-items: flex-start;
+  }
+}
+
+/* Pílulas Mín / Máx Estilo Climatempo */
+.minmax-pills {
   display: inline-flex;
   align-items: center;
-  background: rgba(15, 21, 32, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-pill);
-  padding: 3px;
-  gap: 2px;
+  gap: 10px;
+  margin-bottom: 2px;
 }
 
-.icon-seg-btn {
+.minmax-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.minmax-item.min-temp {
+  background-color: rgba(2, 132, 199, 0.1);
+  color: var(--accent-blue);
+}
+
+.minmax-item.max-temp {
+  background-color: rgba(234, 88, 12, 0.1);
+  color: var(--accent-orange);
+}
+
+.feels-like-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.dew-point-text {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* Abas e Gráfico Suave Estilo Google Weather */
+.google-chart-section {
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.google-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
+}
+
+.g-tab {
   background: transparent;
   border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
   color: var(--text-muted);
-  width: 34px;
-  height: 26px;
-  border-radius: var(--radius-pill);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
-.icon-seg-btn:hover {
-  color: var(--text-white);
+.g-tab:hover {
+  color: var(--text-main);
+  background-color: var(--bg-subtle);
 }
 
-.icon-seg-btn.active {
-  background: rgba(255, 255, 255, 0.2);
-  color: var(--text-white);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+.g-tab.active {
+  color: var(--accent-blue);
+  background-color: rgba(2, 132, 199, 0.1);
 }
 
-/* Carrossel Horizontal de Horários (Now, 20, 21, 22...) */
-.hourly-scroll-strip {
-  display: flex;
-  justify-content: space-between;
-  align-items: stretch;
-  gap: 12px;
-  overflow-x: auto;
-  padding: 4px 2px 2px 2px;
-  scrollbar-width: none;
-}
-
-.hourly-scroll-strip::-webkit-scrollbar {
-  display: none;
-}
-
-.hourly-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  min-width: 52px;
-  gap: 8px;
-  text-align: center;
-}
-
-.hourly-time {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text-white);
-}
-
-.hourly-icon-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 38px;
-  gap: 2px;
-}
-
-.hourly-rain-chance {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--ios-cyan);
-  line-height: 1;
-}
-
-.hourly-val {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-white);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ==========================================================================
-   PEEK DO DASHBOARD & CARD 3: Janelas Consolidadas ("Today 20° ---o-- 27°")
-   ========================================================================== */
-.dashboard-peek-Anchor {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: auto;
-}
-
-.scroll-hint-pill {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  text-decoration: none;
-  color: var(--text-muted);
-  font-size: 0.74rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  padding: 4px 12px;
-  transition: color 0.2s ease, transform 0.2s ease;
-}
-
-.scroll-hint-pill:hover {
-  color: var(--text-white);
-  transform: translateY(2px);
-}
-
-.scroll-hint-pill svg {
-  animation: bounceChevron 2s infinite ease-in-out;
-}
-
-@keyframes bounceChevron {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(3px); }
-}
-
-.forecast-rows-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.forecast-row {
-  display: grid;
-  grid-template-columns: 92px 46px 36px 1fr 36px;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--ios-divider);
-}
-
-.forecast-row:last-child {
-  border-bottom: none;
-  padding-bottom: 2px;
-}
-
-.row-day-label {
-  font-size: 0.94rem;
-  font-weight: 600;
-  color: var(--text-white);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.row-icon-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.row-rain-pct {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--ios-cyan);
-  margin-top: 2px;
-}
-
-.row-min-temp {
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.row-max-temp {
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--text-white);
-  text-align: left;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Barra de Amplitude Térmica estilo iPhone (Trilho + Preenchimento Laranja + Bolinha Atual) */
-.temp-range-track {
+.hero-chart-wrapper {
   position: relative;
-  height: 5px;
-  border-radius: var(--radius-pill);
-  background: rgba(0, 0, 0, 0.35);
-  overflow: visible;
-}
-
-.temp-range-fill {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(90deg, #9be15d 0%, var(--ios-yellow) 45%, var(--ios-orange) 100%);
-}
-
-.temp-current-dot {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid #1b2432;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  height: 175px;
+  width: 100%;
 }
 
 /* ==========================================================================
-   SEGUNDA DOBRA: Dashboard Analítico Completo de Engenharia
+   Bento Grid de Condições (6 Mini-Cards Estilo iPhone / Climatempo)
    ========================================================================== */
-.second-fold-dashboard {
-  margin-top: 28px;
-  padding-top: 16px;
+.conditions-bento {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 520px) {
+  .conditions-bento {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mini-card {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mini-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-blue {
+  background-color: rgba(2, 132, 199, 0.12);
+  color: var(--accent-blue);
+}
+.icon-cyan {
+  background-color: rgba(6, 182, 212, 0.12);
+  color: var(--accent-cyan);
+}
+.icon-amber {
+  background-color: rgba(245, 158, 11, 0.14);
+  color: var(--accent-amber);
+}
+.icon-green {
+  background-color: rgba(16, 185, 129, 0.12);
+  color: var(--accent-green);
+}
+.icon-purple {
+  background-color: rgba(99, 102, 241, 0.12);
+  color: var(--accent-purple);
+}
+.icon-slate {
+  background-color: var(--bg-pill);
+  color: var(--text-secondary);
+}
+
+.mini-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.mini-body {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mini-value {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.mini-value small {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-left: 3px;
+}
+
+.status-tag {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background-color: var(--bg-pill);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.status-tag.tag-green {
+  background-color: rgba(16, 185, 129, 0.13);
+  color: var(--accent-green);
+}
+
+.status-tag.tag-amber {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+}
+
+.status-tag.tag-red {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+}
+
+.mini-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background-color: var(--bg-pill);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.fill-blue {
+  background-color: var(--accent-blue);
+}
+.fill-cyan {
+  background-color: var(--accent-cyan);
+}
+.fill-amber {
+  background-color: var(--accent-amber);
+}
+.fill-green {
+  background-color: var(--accent-green);
+}
+
+.mini-caption {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mini-caption-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   SEÇÃO 2: Dashboard e Histórico (Lista Estilo Climatempo/iPhone + Mapa)
+   ========================================================================== */
+.dashboard-section {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.dashboard-divider-header {
+.section-divider-header {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 0 4px;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-top: 8px;
 }
 
-.divider-eyebrow {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--ios-cyan);
-  text-transform: uppercase;
-}
-
-.divider-title {
-  font-size: 1.35rem;
+.section-title {
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--text-white);
 }
 
-/* Grid Bento Responsivo dos 6 Cards de Sensores */
-.ios-bento-grid {
+.section-subtitle {
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.dashboard-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard-bottom-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 20px;
+  align-items: stretch;
 }
 
-.bento-tile {
+@media (max-width: 980px) {
+  .dashboard-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.history-card,
+.map-and-status-card {
+  padding: 20px;
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+
+.card-header-tabs {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  min-height: 168px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
 }
 
-.bento-tile:hover {
-  background: var(--ios-card-bg-hover);
-  transform: translateY(-2px);
+.pill-tabs {
+  display: inline-flex;
+  background-color: var(--bg-subtle);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
 }
 
-.tile-main-content {
+.pill-tab {
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.pill-tab.active {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.history-list-container {
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Linhas Estilo Climatempo / iPhone Weather */
+.climatempo-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin: 4px 0 8px 0;
 }
 
-.tile-big-reading {
-  font-size: 2rem;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
-  color: var(--text-white);
+.ct-row {
+  display: grid;
+  grid-template-columns: 95px 80px 1fr 75px;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 8px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 13.5px;
   font-variant-numeric: tabular-nums;
 }
 
-.tile-unit {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  margin-left: 2px;
-}
-
-.tile-status-headline {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-soft);
-}
-
-.tile-footer-note {
-  font-size: 0.76rem;
-  color: var(--text-muted);
-  line-height: 1.32;
-}
-
-.tile-footer-note strong {
-  color: var(--text-white);
-}
-
-/* Barra Espectro AQI (Apple Weather Air Quality Bar) */
-.ios-spectrum-bar {
-  position: relative;
-  height: 5px;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(90deg, #30D158 0%, #FFD60A 38%, #FF9F0A 68%, #FF453A 90%, #BF5AF2 100%);
-  margin-top: 6px;
-}
-
-.spectrum-dot {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid #1b2432;
-  transition: left 0.35s var(--spring);
-}
-
-.ios-progress-track {
-  width: 100%;
-  height: 5px;
-  background: rgba(0, 0, 0, 0.32);
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-  margin-top: 6px;
-}
-
-.ios-progress-fill {
-  height: 100%;
-  border-radius: var(--radius-pill);
-  transition: width 0.35s var(--spring);
-}
-
-.fill-blue {
-  background: linear-gradient(90deg, var(--ios-cyan), var(--ios-blue));
-}
-
-.fill-amber {
-  background: linear-gradient(90deg, var(--ios-yellow), var(--ios-orange));
-}
-
-/* ==========================================================================
-   Seção de Gráfico Analítico (Chart.js)
-   ========================================================================== */
-.chart-section-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.chart-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.chart-card-top .ios-section-label {
+.ct-row:last-child {
   border-bottom: none;
-  margin-bottom: 2px;
-  padding-bottom: 0;
 }
 
-.chart-sub-caption {
-  font-size: 0.76rem;
-  color: var(--text-muted);
+@media (max-width: 560px) {
+  .ct-row {
+    grid-template-columns: 80px 65px 1fr;
+  }
+  .ct-row .ct-meta-col {
+    display: none;
+  }
 }
 
-.ios-pill-tabs {
-  display: inline-flex;
-  background: rgba(14, 20, 30, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-pill);
-  padding: 3px;
-  gap: 2px;
-  overflow-x: auto;
-}
-
-.segment-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-family: var(--font-sf);
-  font-size: 0.75rem;
+.ct-time-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 600;
-  padding: 5px 11px;
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s ease;
 }
 
-.segment-btn:hover {
-  color: var(--text-white);
+.ct-rain-col {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-blue);
+  font-size: 12.5px;
+  font-weight: 600;
 }
 
-.segment-btn.active {
-  background: rgba(255, 255, 255, 0.2);
-  color: var(--text-white);
+/* Barra de Amplitude Térmica Estilo iPhone / Climatempo */
+.ct-temp-bar-col {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.chart-canvas-holder {
+.ct-min {
+  color: var(--text-muted);
+  font-weight: 500;
+  width: 34px;
+  text-align: right;
+}
+
+.ct-max {
+  color: var(--text-main);
+  font-weight: 700;
+  width: 34px;
+}
+
+.ct-bar-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background-color: var(--bg-pill);
   position: relative;
-  width: 100%;
-  height: 250px;
+  overflow: hidden;
 }
 
-/* ==========================================================================
-   Mapa + Card de Engenharia do Sistema (Hot/Cold Path & ESP32)
-   ========================================================================== */
-.bottom-split-grid {
-  display: grid;
-  grid-template-columns: 1.25fr 1fr;
-  gap: 12px;
+.ct-bar-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #38bdf8 0%, #f59e0b 60%, #ea580c 100%);
 }
 
-.map-section-card, .system-health-card {
+.ct-meta-col {
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Lista de Alertas */
+.events-list {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+.event-item {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.event-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.event-item-desc {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 36px 16px;
+  color: var(--text-muted);
+  font-size: 13.5px;
+}
+
+/* Card de Mapa e Status */
+.card-simple-header {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
 }
 
-.map-viewport {
+.card-simple-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.card-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.device-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.map-container {
   width: 100%;
-  height: 250px;
-  border-radius: 12px;
+  height: 215px;
+  border-radius: 14px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
   z-index: 1;
 }
 
-.map-meta-footer {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  flex-wrap: wrap;
-  gap: 6px;
+.system-summary-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 }
 
-.sys-stats-list {
+.sys-stat {
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
-}
-
-.sys-stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.8rem;
-  padding-bottom: 5px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.sys-stat-row:last-child {
-  border-bottom: none;
 }
 
 .sys-label {
+  font-size: 11.5px;
   color: var(--text-muted);
 }
 
 .sys-val {
-  font-weight: 600;
-  color: var(--text-white);
+  font-size: 18px;
+  font-weight: 700;
+  margin: 2px 0;
   font-variant-numeric: tabular-nums;
 }
 
-.sys-val.mono {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
+.text-emerald {
+  color: var(--accent-green);
 }
 
-.badge-green {
-  background: rgba(48, 209, 88, 0.18);
-  color: var(--ios-green);
-  border: 1px solid rgba(48, 209, 88, 0.35);
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-  font-size: 0.68rem;
-  font-weight: 700;
-}
-
-.ios-footer {
-  text-align: center;
-  padding: 16px 0 8px 0;
-  font-size: 0.76rem;
+.sys-note {
+  font-size: 11px;
   color: var(--text-muted);
-}
-
-/* ==========================================================================
-   BARRA INFERIOR FIXA ESTILO iOS WEATHER (Idêntica à Foto)
-   ========================================================================== */
-.ios-bottom-toolbar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 68px;
-  padding: 0 24px;
-  background: linear-gradient(180deg, rgba(18, 24, 36, 0.72) 0%, rgba(14, 19, 29, 0.92) 100%);
-  backdrop-filter: blur(26px) saturate(180%);
-  -webkit-backdrop-filter: blur(26px) saturate(180%);
-  border-top: 1px solid rgba(255, 255, 255, 0.09);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 1000;
-}
-
-.toolbar-circle-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--text-white);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
-}
-
-.toolbar-circle-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.toolbar-circle-btn:active {
-  transform: scale(0.92);
-}
-
-.toolbar-center-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 8px 16px;
-  border-radius: var(--radius-pill);
-  color: var(--text-white);
-  cursor: pointer;
-}
-
-.toolbar-center-pill svg {
-  transform: rotate(45deg);
-}
-
-.dot-indicator {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  transition: background 0.25s ease, transform 0.25s ease;
-}
-
-.dot-indicator.active {
-  background: #ffffff;
-  transform: scale(1.15);
-}
-
-/* ==========================================================================
-   Animações Real-Time de Oscilação Sensorial
-   ========================================================================== */
-.value-flash-up {
-  animation: flashUp 0.7s var(--spring);
-}
-
-.value-flash-down {
-  animation: flashDown 0.7s var(--spring);
-}
-
-@keyframes flashUp {
-  0% { color: var(--ios-green); text-shadow: 0 0 14px rgba(48, 209, 88, 0.75); }
-  100% { color: inherit; text-shadow: none; }
-}
-
-@keyframes flashDown {
-  0% { color: var(--ios-yellow); text-shadow: 0 0 14px rgba(255, 214, 10, 0.75); }
-  100% { color: inherit; text-shadow: none; }
-}
-
-/* ==========================================================================
-   Responsividade Completa (Mobile, Tablet e Desktop)
-   ========================================================================== */
-@media (max-width: 820px) {
-  .ios-bento-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .bottom-split-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 520px) {
-  .ios-weather-shell {
-    padding: 0 12px;
-  }
-
-  .ios-bento-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
-
-  .bento-tile {
-    padding: 12px;
-    min-height: 152px;
-  }
-
-  .tile-big-reading {
-    font-size: 1.65rem;
-  }
-
-  .forecast-row {
-    grid-template-columns: 78px 40px 32px 1fr 32px;
-    gap: 6px;
-  }
-
-  .ios-bottom-toolbar {
-    height: 62px;
-    padding: 0 16px;
-  }
-}
-
-@media (max-width: 360px) {
-  .ios-bento-grid {
-    grid-template-columns: 1fr;
-  }
 }

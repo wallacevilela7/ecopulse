@@ -6,27 +6,33 @@ Arquitetura Dual-Pipeline:
   - Cold Path: Agregação Temporal (5 min, WMO-No. 8 / INMET) + Deadband de Eventos no PostgreSQL
 """
 import os
+import re
+import time
 import json
 import asyncio
+import urllib.request
 from collections import deque
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Set
 
+from pathlib import Path
 from fastapi import FastAPI, Header, HTTPException, Depends, Query, Request, status
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
-from app.database import engine, Base, get_db
+from app.database import engine, Base, get_db, SessionLocal
 from app.models import TelemetryAggregated5m, TelemetryEvent
-from app.schemas import TelemetryPayload, TelemetryResponse
+from app.schemas import TelemetryPayload, TelemetryResponse, SensorDataSchema, DiagnosticsSchema
 
 load_dotenv()
 
 API_SECRET_KEY = os.getenv("API_SECRET_KEY", "chave-secreta-estacao-unip-2026")
 COLD_PATH_WINDOW_SECONDS = int(os.getenv("COLD_PATH_WINDOW_SECONDS", "300"))  # 5 minutos (padrão WMO/Davis)
+ESP32_MDNS_RAW_URL = os.getenv("ESP32_MDNS_RAW_URL", "http://esp32.local/raw")
 
 
 # =========================================================================
@@ -59,6 +65,7 @@ class TelemetryBroadcaster:
 
 
 broadcaster = TelemetryBroadcaster()
+shutdown_event = asyncio.Event()
 
 
 # =========================================================================
@@ -78,6 +85,7 @@ class HotColdTelemetryEngine:
         self.persisted_once_devices: Set[str] = set()
         self.total_hot_ticks: int = 0
         self.total_cold_writes: int = 0
+        self.last_direct_push_ts: float = 0.0
 
     def reset_state(self):
         """Reinicia o estado em memória (útil para suíte de testes automatizados)."""
@@ -89,6 +97,7 @@ class HotColdTelemetryEngine:
         self.persisted_once_devices.clear()
         self.total_hot_ticks = 0
         self.total_cold_writes = 0
+        self.last_direct_push_ts = 0.0
 
     def _update_extremes(self, device_id: str, s: dict):
         ext = self.daily_extremes.get(device_id)
@@ -271,74 +280,8 @@ class HotColdTelemetryEngine:
 telemetry_engine = HotColdTelemetryEngine()
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Inicializa as tabelas do Cold Path no boot da aplicação."""
-    Base.metadata.create_all(bind=engine)
-    yield
-
-
-app = FastAPI(
-    title="EcoPulse IoT API — Hot/Cold Path",
-    description=(
-        "API de Telemetria Meteorológica com Dual-Pipeline: "
-        "Hot Path (RAM + SSE < 15ms) e Cold Path (Agregação 5m WMO-No. 8 + Deadband no PostgreSQL)."
-    ),
-    version="2.0.0",
-    lifespan=lifespan,
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-@app.get("/health", tags=["Monitoramento"])
-def health_check():
-    """Diagnóstico operacional da API e métricas de economia de I/O do Hot/Cold Path."""
-    hot = telemetry_engine.total_hot_ticks
-    cold = telemetry_engine.total_cold_writes
-    io_saved_pct = round((1 - (cold / hot)) * 100, 2) if hot > 0 and cold <= hot else 0.0
-    return {
-        "status": "healthy",
-        "architecture": "Hot/Cold Path Dual-Pipeline",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "subscribers_online": len(broadcaster._subscribers),
-        "pipeline_metrics": {
-            "hot_path_ticks_received": hot,
-            "cold_path_db_writes": cold,
-            "disk_io_reduction_pct": io_saved_pct,
-            "window_interval_seconds": COLD_PATH_WINDOW_SECONDS,
-        },
-    }
-
-
-@app.post(
-    "/api/v1/telemetry",
-    status_code=status.HTTP_201_CREATED,
-    response_model=TelemetryResponse,
-    tags=["Telemetria"],
-)
-async def receber_telemetria(
-    payload: TelemetryPayload,
-    _auth: str = Header(..., alias="X-API-Key"),
-    db: Session = Depends(get_db),
-):
-    """
-    Ingestão Dual-Pipeline:
-    1. Hot Path: Atualiza estado em RAM e transmite imediatamente via SSE (< 15ms).
-    2. Cold Path: Agrega em janela de 5 minutos ou persiste imediatamente se detectar Deadband/Exceção.
-    """
-    if _auth != API_SECRET_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Chave de autenticação 'X-API-Key' inválida.",
-        )
-
+async def _ingest_telemetry_payload(payload: TelemetryPayload, db: Session) -> TelemetryResponse:
+    """Núcleo compartilhado de ingestão Dual-Pipeline (POST direto ou Bridge mDNS local)."""
     agora = datetime.now(timezone.utc)
     dev_id = payload.device_id
     s_dict = payload.sensors.model_dump()
@@ -420,7 +363,8 @@ async def receber_telemetria(
     print(
         f"[{status_tag}] {dev_id} | "
         f"T: {s_dict.get('temperature_c')}°C | U: {s_dict.get('humidity_pct')}% | "
-        f"P: {s_dict.get('pressure_hpa')}hPa | Ar: {s_dict.get('air_quality_ppm')}ppm"
+        f"P: {s_dict.get('pressure_hpa')}hPa | Luz: {s_dict.get('luminosity_pct')}% | "
+        f"Chuva: {s_dict.get('rain_intensity_pct')}%"
     )
 
     return TelemetryResponse(
@@ -432,6 +376,181 @@ async def receber_telemetria(
         cold_path_persisted=cold_persisted,
         persistence_reason=reason,
     )
+
+
+def _parse_esp32_raw_block(raw_text: str) -> Optional[TelemetryPayload]:
+    """
+    Extrai a última leitura física real diretamente do buffer /raw da ESP32 via mDNS.
+    Garante funcionamento imediato na rede local mesmo quando o roteador altera o IP DHCP do host.
+    """
+    blocks = [b.strip() for b in raw_text.split("==================================================") if "[DHT22]" in b or "[LDR]" in b]
+    if not blocks:
+        return None
+    last_block = blocks[-1]
+
+    dht_m = re.search(r"\[DHT22\]\s+Temp:\s*([\d.]+)\s*°C\s*\|\s*Umidade:\s*([\d.]+)\s*%", last_block)
+    bmp_m = re.search(r"\[BMP280\]\s+Temp:\s*([\d.]+)\s*°C\s*\|\s*Pressao:\s*([\d.]+)\s*hPa\s*\|\s*Alt\.\s*Aprox:\s*([\d.]+)\s*m", last_block)
+    mq_m = re.search(r"\[MQ-135\].*?PPM:\s*([\d.]+)", last_block)
+    ldr_m = re.search(r"\[LDR\]\s+ADC:\s*(\d+)\s*\|.*?Luz:\s*([\d.]+)\s*%", last_block)
+    rain_m = re.search(r"\[CHUVA\]\s+ADC:\s*(\d+)\s*\|.*?Agua:\s*([\d.]+)\s*%\s*\|\s*Chuva:\s*(SIM|NAO)", last_block)
+
+    if not (dht_m or bmp_m or ldr_m):
+        return None
+
+    temp_c = float(dht_m.group(1)) if dht_m else (float(bmp_m.group(1)) if bmp_m else None)
+    hum_pct = float(dht_m.group(2)) if dht_m else None
+    press_hpa = float(bmp_m.group(2)) if bmp_m else None
+    alt_m = float(bmp_m.group(3)) if bmp_m else None
+    ppm = float(mq_m.group(1)) if mq_m else 10.0
+    luz = float(ldr_m.group(2)) if ldr_m else 0.0
+
+    # Calibração de baseline real e filtro de ruído ADC1 para o sensor de chuva (GPIO 34):
+    # Em circuito aberto (placa seca), o pino GPIO 34 flutua entre ADC 650 e 2800 (~0.65V a 2.4V)
+    # devido ao acoplamento com o canal adjacente (GPIO 35). Apenas quando há água fechando
+    # contato físico na malha condutiva (ou DO ativo em nível baixo) o ADC cai abaixo de 500.
+    agua = 0.0
+    chovendo = False
+    if rain_m:
+        rain_adc = int(rain_m.group(1))
+        if rain_adc < 500:
+            agua = round(min(100.0, max(0.0, ((500.0 - rain_adc) / 450.0) * 100.0)), 1)
+            chovendo = agua >= 5.0
+
+    return TelemetryPayload(
+        device_id="esp32-meteo-01",
+        sensors=SensorDataSchema(
+            temperature_c=temp_c,
+            humidity_pct=hum_pct,
+            pressure_hpa=press_hpa,
+            altitude_m=alt_m,
+            air_quality_ppm=ppm,
+            luminosity_pct=luz,
+            rain_intensity_pct=agua,
+            is_raining=chovendo,
+        ),
+        diagnostics=DiagnosticsSchema(wifi_rssi_dbm=-52),
+    )
+
+
+def _fetch_esp32_raw_sync() -> Optional[str]:
+    try:
+        req = urllib.request.Request(ESP32_MDNS_RAW_URL, headers={"User-Agent": "EcoPulse-Backend/2.0"})
+        with urllib.request.urlopen(req, timeout=1.5) as resp:
+            if resp.status == 200:
+                return resp.read().decode("utf-8", errors="ignore")
+    except Exception:
+        return None
+    return None
+
+
+async def _esp32_mdns_bridge_loop():
+    """
+    Loop resiliente de descoberta mDNS (esp32.local):
+    Se a ESP32 estiver online na LAN mas tentando enviar POST para um IP DHCP antigo do computador,
+    coleta automaticamente as leituras reais em http://esp32.local/raw a cada 2.5s.
+    """
+    while True:
+        await asyncio.sleep(2.5)
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            continue
+        # Se a ESP32 já está entregando POST diretamente nos últimos 4s, não precisa fazer pull
+        if (time.monotonic() - telemetry_engine.last_direct_push_ts) < 4.0:
+            continue
+
+        raw_text = await asyncio.to_thread(_fetch_esp32_raw_sync)
+        if not raw_text:
+            continue
+
+        payload = _parse_esp32_raw_block(raw_text)
+        if payload:
+            db = SessionLocal()
+            try:
+                await _ingest_telemetry_payload(payload, db)
+            except Exception:
+                pass
+            finally:
+                db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Inicializa as tabelas do Cold Path e a ponte mDNS resiliente no boot da aplicação (apenas em ambiente local)."""
+    shutdown_event.clear()
+    Base.metadata.create_all(bind=engine)
+    bridge_task = None
+    if "PYTEST_CURRENT_TEST" not in os.environ and os.getenv("APP_ENV") != "production":
+        bridge_task = asyncio.create_task(_esp32_mdns_bridge_loop())
+    try:
+        yield
+    finally:
+        shutdown_event.set()
+        if bridge_task:
+            bridge_task.cancel()
+
+
+app = FastAPI(
+    title="EcoPulse IoT API — Hot/Cold Path",
+    description=(
+        "API de Telemetria Meteorológica com Dual-Pipeline: "
+        "Hot Path (RAM + SSE < 15ms) e Cold Path (Agregação 5m WMO-No. 8 + Deadband no PostgreSQL)."
+    ),
+    version="2.0.0",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health", tags=["Monitoramento"])
+def health_check():
+    """Diagnóstico operacional da API e métricas de economia de I/O do Hot/Cold Path."""
+    hot = telemetry_engine.total_hot_ticks
+    cold = telemetry_engine.total_cold_writes
+    io_saved_pct = round((1 - (cold / hot)) * 100, 2) if hot > 0 and cold <= hot else 0.0
+    return {
+        "status": "healthy",
+        "architecture": "Hot/Cold Path Dual-Pipeline",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "subscribers_online": len(broadcaster._subscribers),
+        "pipeline_metrics": {
+            "hot_path_ticks_received": hot,
+            "cold_path_db_writes": cold,
+            "disk_io_reduction_pct": io_saved_pct,
+            "window_interval_seconds": COLD_PATH_WINDOW_SECONDS,
+        },
+    }
+
+
+@app.post(
+    "/api/v1/telemetry",
+    status_code=status.HTTP_201_CREATED,
+    response_model=TelemetryResponse,
+    tags=["Telemetria"],
+)
+async def receber_telemetria(
+    payload: TelemetryPayload,
+    _auth: str = Header(..., alias="X-API-Key"),
+    db: Session = Depends(get_db),
+):
+    """
+    Ingestão Dual-Pipeline:
+    1. Hot Path: Atualiza estado em RAM e transmite imediatamente via SSE (< 15ms).
+    2. Cold Path: Agrega em janela de 5 minutos ou persiste imediatamente se detectar Deadband/Exceção.
+    """
+    if _auth != API_SECRET_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Chave de autenticação 'X-API-Key' inválida.",
+        )
+
+    telemetry_engine.last_direct_push_ts = time.monotonic()
+    return await _ingest_telemetry_payload(payload, db)
 
 
 @app.get("/api/v1/telemetry/stream", tags=["Telemetria"])
@@ -457,13 +576,15 @@ async def stream_telemetria(request: Request, db: Session = Depends(get_db)):
                 if ultimo_db:
                     yield f"data: {json.dumps(ultimo_db.to_dict())}\n\n"
 
-            while True:
+            while not shutdown_event.is_set():
                 if await request.is_disconnected():
                     break
                 try:
-                    data = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    data = await asyncio.wait_for(queue.get(), timeout=2.0)
                     yield f"data: {json.dumps(data)}\n\n"
                 except asyncio.TimeoutError:
+                    if shutdown_event.is_set():
+                        break
                     yield ": ping\n\n"
         finally:
             broadcaster.unsubscribe(queue)
@@ -554,3 +675,9 @@ def obter_eventos_climaticos(
 
     eventos = query.order_by(TelemetryEvent.recorded_at.desc()).limit(limit).all()
     return [e.to_dict() for e in eventos]
+
+
+# Monta o Frontend estático na raiz se o diretório existir localmente (facilita acesso em http://localhost:8000)
+FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
+if FRONTEND_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")

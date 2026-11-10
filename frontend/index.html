@@ -1,396 +1,359 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0e1218">
-  <title>EcoPulse — Clima & Telemetria em Tempo Real</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcoPulse Clima — São Paulo, SP</title>
+  <meta name="description" content="Condições meteorológicas ao vivo e painel de monitoramento da estação EcoPulse." />
 
-  <link rel="stylesheet" href="css/styles.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <!-- Fonte Limpa e Moderna (Plus Jakarta Sans / Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="./css/styles.css" />
 </head>
 <body>
-  <!-- Fundo Sóbrio Estático (Carbon Slate / Graphite) -->
-  <div class="sober-app-background"></div>
-
-  <!-- Container Principal com 1ª Dobra (Condições Atuais + Peek do Dashboard) e 2ª Dobra (Dashboard Completo) -->
-  <div class="ios-weather-shell">
-
-    <!-- ===================================================================
-         PRIMEIRA DOBRA: DADOS ATUAIS + PEEK DO DASHBOARD
-         =================================================================== -->
-    <section class="first-fold-viewport" id="topWeatherSection">
-
-      <!-- Status Pill Discreto no Topo -->
-      <div class="top-live-bar">
-        <div class="live-pill" id="statusIndicator">
-          <span class="pulse-dot"></span>
-          <span id="statusLabel">Conectando ao Hot Path...</span>
+  <!-- Cabeçalho Simples e Limpo (Estilo Climatempo / Google) -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <div class="brand">
+        <div class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+          </svg>
         </div>
-        <span class="sync-clock" id="lastSyncTime">--:--</span>
+        <div>
+          <span class="brand-name">EcoPulse</span>
+          <span class="brand-location" id="navbar-location-text">São Paulo, SP</span>
+        </div>
       </div>
 
-      <!-- HERO CENTRALIZADO FLUTUANTE (Idêntico ao iPhone Weather da Foto) -->
-      <header class="ios-hero">
-        <div class="hero-home-tag">
-          <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor">
-            <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
-          </svg>
-          <span id="stationTag">HOME • ESTAÇÃO ECOPULSE</span>
-        </div>
-        <h1 class="hero-city" id="stationCity">São Paulo</h1>
-        <div class="hero-temperature">
-          <span id="heroTemp">--</span><span class="degree-symbol">°</span>
-        </div>
-        <p class="hero-condition" id="heroCondition">Sincronizando sensores...</p>
-        <div class="hero-high-low">
-          <span>Máx.: <strong id="heroHigh">--°</strong></span>
-          <span>Mín.: <strong id="heroLow">--°</strong></span>
-        </div>
-      </header>
-
-      <!-- CARD 1: ALERTA METEOROLÓGICO (Idêntico ao "Storm & 2 More" da Foto) -->
-      <article class="ios-glass-card alert-banner-card" id="alertBannerCard">
-        <div class="alert-header">
-          <svg class="alert-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
-          </svg>
-          <h2 class="alert-title" id="alertTitle">Vigilância Microclimática Ativa</h2>
-        </div>
-        <p class="alert-description" id="alertDescription">
-          Monitoramento contínuo pelos 5 sensores de bancada (DHT22, BMP280, MQ-135, LDR e Pluviômetro). Nenhuma anomalia severa no momento.
-        </p>
-        <span class="alert-source" id="alertSource">Instituto Nacional de Meteorologia • Padrão WMO-No. 8</span>
-      </article>
-
-      <!-- CARD 2: CONDIÇÕES HORÁRIAS / RECENTES (Idêntico ao "Conditions" da Foto) -->
-      <article class="ios-glass-card conditions-strip-card">
-        <div class="conditions-card-header">
-          <div class="conditions-titles">
-            <h3 class="card-main-heading">Condições</h3>
-            <span class="card-sub-heading" id="stripModeSubtitle">Temperatura (°C)</span>
-          </div>
-          <!-- Seletor em Pílula com 3 Ícones (Clima/Temp, Chuva/Umid, Gases/Pressão) -->
-          <div class="ios-icon-segmented" role="tablist" aria-label="Alternar modo de condições">
-            <button class="icon-seg-btn active" data-strip-mode="temp" title="Temperatura e Condição" aria-selected="true">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
-              </svg>
-            </button>
-            <button class="icon-seg-btn" data-strip-mode="rain" title="Chuva e Umidade" aria-selected="false">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
-                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-              </svg>
-            </button>
-            <button class="icon-seg-btn" data-strip-mode="air" title="Qualidade do Ar e Pressão" aria-selected="false">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-                <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/>
-              </svg>
-            </button>
-          </div>
+      <div class="navbar-right">
+        <div class="live-indicator" id="connection-pill">
+          <span class="live-dot" id="status-dot"></span>
+          <span id="status-text">Ao vivo</span>
+          <span class="live-time" id="last-update-time">--:--</span>
         </div>
 
-        <!-- Faixa Horizontal Rolável (Agora, -2m, -5m, -10m...) -->
-        <div class="hourly-scroll-strip" id="hourlyStrip">
-          <!-- Preenchido dinamicamente pelo JS -->
-        </div>
-      </article>
-
-      <!-- PEEK DO DASHBOARD: Começa a aparecer na base da 1ª dobra convidando à rolagem -->
-      <div class="dashboard-peek-Anchor" id="dashboardPeekSection">
-        <a href="#fullDashboardSection" class="scroll-hint-pill" aria-label="Rolar para o dashboard completo">
-          <span>Rolar para o Dashboard Completo de Sensores</span>
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </a>
-
-        <!-- CARD 3: JANELAS E AMPLITUDE TÉRMICA (Idêntico ao "Today / Fri" com barras laranjas da Foto) -->
-        <article class="ios-glass-card forecast-bars-card">
-          <header class="ios-section-label">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <span>JANELAS CONSOLIDADAS (COLD PATH • AMPLITUDE TÉRMICA)</span>
-          </header>
-          <div class="forecast-rows-list" id="windowBarsList">
-            <!-- Preenchido dinamicamente pelo JS no padrão Today | 🌧️ 35% | 20° ---o-- 27° -->
-          </div>
-        </article>
+        <button type="button" class="icon-btn" id="btn-theme-toggle" title="Alternar tema claro/escuro">
+          <span id="theme-label">Modo escuro</span>
+        </button>
       </div>
+    </div>
+  </header>
 
+  <main class="container main-content">
+    <!-- Banner de Alerta (Aparece apenas se houver chuva forte ou mudança brusca) -->
+    <section class="weather-alert hidden" id="alert-banner" role="alert">
+      <div class="alert-icon">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+          <path d="M12 9v4"/><path d="M12 17h.01"/>
+        </svg>
+      </div>
+      <div class="alert-body">
+        <strong id="alert-title">Alerta Meteorológico</strong>
+        <span id="alert-description">--</span>
+      </div>
+      <span class="alert-time" id="alert-time">--:--</span>
     </section>
 
-    <!-- ===================================================================
-         SEGUNDA DOBRA: DASHBOARD COMPLETO DE SENSORES, GRÁFICOS E MAPA
-         =================================================================== -->
-    <main class="second-fold-dashboard" id="fullDashboardSection">
+    <!-- =======================================================================
+         SEÇÃO 1: CONDIÇÕES ATUAIS (Simplicidade Google Weather + Cards iPhone/Climatempo)
+         ======================================================================= -->
+    <section class="current-weather-grid" aria-label="Condições meteorológicas agora">
+      <!-- Card Principal (Esquerda): Estilo Google Weather + Climatempo -->
+      <article class="card hero-weather-card">
+        <div class="hero-top">
+          <div>
+            <span class="eyebrow-location" id="hero-eyebrow-location">Agora na Estação</span>
+            <h1 class="city-title" id="hero-city-title">São Paulo, SP</h1>
+          </div>
+          <span class="condition-pill" id="hero-condition-text">Tempo firme</span>
+        </div>
 
-      <div class="dashboard-divider-header">
-        <span class="divider-eyebrow">TELEMETRIA DE BANCADA • 5 SENSORES ATIVOS</span>
-        <h2 class="divider-title">Painel Analítico de Engenharia</h2>
+        <!-- Bloco Central: Ícone + Temperatura Grande + Mín/Máx Estilo Climatempo -->
+        <div class="hero-main-row">
+          <div class="hero-temp-group">
+            <div class="weather-illustration" id="hero-weather-icon" aria-hidden="true">
+              <!-- Ícone SVG dinâmico inserido via JS -->
+              <svg viewBox="0 0 64 64" width="68" height="68">
+                <circle cx="32" cy="32" r="16" fill="#F59E0B" />
+              </svg>
+            </div>
+            <div class="hero-temp-value">
+              <span id="val-temp">--</span><span class="temp-unit">°C</span>
+            </div>
+          </div>
+
+          <div class="hero-summary-stats">
+            <div class="minmax-pills">
+              <span class="minmax-item min-temp" title="Temperatura mínima registrada">
+                <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3v10M4 9l4 4 4-4"/></svg>
+                <strong id="val-temp-min">--°</strong>
+              </span>
+              <span class="minmax-item max-temp" title="Temperatura máxima registrada">
+                <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+                <strong id="val-temp-max">--°</strong>
+              </span>
+            </div>
+            <p class="feels-like-text">Sensação térmica de <strong id="val-feels-like">--°C</strong></p>
+            <p class="dew-point-text">Ponto de orvalho: <span id="val-dew-point">--°C</span></p>
+          </div>
+        </div>
+
+        <!-- Abas e Curva Suave Estilo Google Weather -->
+        <div class="google-chart-section">
+          <div class="google-tabs" role="tablist" aria-label="Variável em destaque">
+            <button type="button" class="g-tab active" data-chart-mode="thermo" role="tab" aria-selected="true">
+              Temperatura
+            </button>
+            <button type="button" class="g-tab" data-chart-mode="humidity_rain" role="tab" aria-selected="false">
+              Umidade e Chuva
+            </button>
+            <button type="button" class="g-tab" data-chart-mode="pressure" role="tab" aria-selected="false">
+              Pressão
+            </button>
+          </div>
+
+          <div class="hero-chart-wrapper">
+            <canvas id="mainSynopticChart"></canvas>
+          </div>
+        </div>
+      </article>
+
+      <!-- Grade Direita: 6 Mini-Cards Limpos (Estilo App iPhone + Detalhes Climatempo) -->
+      <div class="conditions-bento">
+        <!-- 1. Chuva -->
+        <article class="card mini-card">
+          <div class="mini-card-header">
+            <span class="mini-icon icon-blue">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+              </svg>
+            </span>
+            <span class="mini-title">Chuva</span>
+          </div>
+          <div class="mini-body">
+            <div class="mini-value"><span id="val-rain">0</span><small>%</small></div>
+            <span class="status-tag tag-green" id="badge-rain-state">Sem chuva</span>
+          </div>
+          <div class="mini-footer">
+            <div class="progress-bar">
+              <div class="progress-fill fill-blue" id="bar-rain" style="width: 0%;"></div>
+            </div>
+            <p class="mini-caption" id="val-rain-desc">Sensor seco no momento</p>
+          </div>
+        </article>
+
+        <!-- 2. Umidade do Ar -->
+        <article class="card mini-card">
+          <div class="mini-card-header">
+            <span class="mini-icon icon-cyan">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/>
+                <path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/>
+              </svg>
+            </span>
+            <span class="mini-title">Umidade</span>
+          </div>
+          <div class="mini-body">
+            <div class="mini-value"><span id="val-humidity">--</span><small>%</small></div>
+            <span class="status-tag" id="val-humidity-state">--</span>
+          </div>
+          <div class="mini-footer">
+            <div class="progress-bar">
+              <div class="progress-fill fill-cyan" id="bar-humidity" style="width: 0%;"></div>
+            </div>
+            <p class="mini-caption">Faixa ideal de conforto: 40% a 70%</p>
+          </div>
+        </article>
+
+        <!-- 3. Luminosidade / Sol -->
+        <article class="card mini-card">
+          <div class="mini-card-header">
+            <span class="mini-icon icon-amber">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+              </svg>
+            </span>
+            <span class="mini-title">Luminosidade</span>
+          </div>
+          <div class="mini-body">
+            <div class="mini-value"><span id="val-light">--</span><small>%</small></div>
+            <span class="status-tag" id="badge-light-state">--</span>
+          </div>
+          <div class="mini-footer">
+            <div class="progress-bar">
+              <div class="progress-fill fill-amber" id="bar-light" style="width: 0%;"></div>
+            </div>
+            <p class="mini-caption" id="val-light-desc">Claridade natural ambiente</p>
+          </div>
+        </article>
+
+        <!-- 4. Qualidade do Ar -->
+        <article class="card mini-card">
+          <div class="mini-card-header">
+            <span class="mini-icon icon-green">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/>
+              </svg>
+            </span>
+            <span class="mini-title">Qualidade do Ar</span>
+          </div>
+          <div class="mini-body">
+            <div class="mini-value"><span id="val-aqi">--</span><small>ppm</small></div>
+            <span class="status-tag tag-green" id="badge-aqi-class">Excelente</span>
+          </div>
+          <div class="mini-footer">
+            <div class="progress-bar">
+              <div class="progress-fill fill-green" id="bar-aqi" style="width: 5%;"></div>
+            </div>
+            <p class="mini-caption">Pico hoje: <strong id="val-aqi-max">-- ppm</strong></p>
+          </div>
+        </article>
+
+        <!-- 5. Pressão Atmosférica -->
+        <article class="card mini-card">
+          <div class="mini-card-header">
+            <span class="mini-icon icon-purple">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>
+              </svg>
+            </span>
+            <span class="mini-title">Pressão</span>
+          </div>
+          <div class="mini-body">
+            <div class="mini-value"><span id="val-pressure">----</span><small>hPa</small></div>
+          </div>
+          <div class="mini-footer">
+            <p class="mini-caption" id="val-pressure-trend">Estável no momento</p>
+            <p class="mini-caption-sub">Mín <span id="val-pressure-min">----</span> • Máx <span id="val-pressure-max">----</span> hPa</p>
+          </div>
+        </article>
+
+        <!-- 6. Altitude e Estação -->
+        <article class="card mini-card">
+          <div class="mini-card-header">
+            <span class="mini-icon icon-slate">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m8 3 4 8 5-5 5 15H2L8 3z"/>
+              </svg>
+            </span>
+            <span class="mini-title">Altitude Local</span>
+          </div>
+          <div class="mini-body">
+            <div class="mini-value"><span id="val-altitude">---</span><small>m</small></div>
+          </div>
+          <div class="mini-footer">
+            <p class="mini-caption">Nível barométrico calculado</p>
+            <p class="mini-caption-sub">Sinal Wi-Fi: <strong id="diag-rssi">-- dBm</strong></p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         SEÇÃO 2: DASHBOARD E HISTÓRICO DA ESTAÇÃO (Bem dividido em 2 colunas)
+         ======================================================================= -->
+    <section class="dashboard-section" aria-label="Histórico e detalhes da estação">
+      <div class="section-divider-header">
+        <div>
+          <h2 class="section-title">Painel e Histórico da Estação</h2>
+          <p class="section-subtitle">Acompanhamento das janelas consolidadas de 5 minutos, alertas e localização</p>
+        </div>
+
+        <div class="dashboard-controls">
+          <select class="clean-select" id="history-limit-select" aria-label="Período do histórico">
+            <option value="12">Últimas 12 medições</option>
+            <option value="24" selected>Últimas 24 medições</option>
+            <option value="48">Últimas 48 medições</option>
+          </select>
+          <button type="button" class="clean-btn" id="btn-refresh">Atualizar dados</button>
+        </div>
       </div>
 
-      <!-- BENTO GRID DE SENSORES FÍSICOS (2 Colunas Mobile / 3 Colunas Desktop) -->
-      <section class="ios-bento-grid">
-
-        <!-- 1. Qualidade do Ar (MQ-135) -->
-        <article class="ios-glass-card bento-tile">
-          <header class="ios-section-label">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
-            </svg>
-            <span>QUALIDADE DO AR (MQ-135)</span>
-          </header>
-          <div class="tile-main-content">
-            <div class="tile-big-reading">
-              <span id="aqiPpm">--</span>
-              <small class="tile-unit">PPM</small>
-            </div>
-            <span class="tile-status-headline" id="aqiBadge">Excelente</span>
-            <div class="ios-spectrum-bar">
-              <div class="spectrum-dot" id="aqiDot" style="left: 10%;"></div>
+      <div class="dashboard-bottom-grid">
+        <!-- Coluna Esquerda: Lista Estilo Climatempo / iPhone das Medições e Eventos -->
+        <div class="card history-card">
+          <div class="card-header-tabs">
+            <div class="pill-tabs" role="tablist">
+              <button type="button" class="pill-tab active" data-log-tab="windows">
+                Medições Consolidadas
+              </button>
+              <button type="button" class="pill-tab" data-log-tab="events">
+                Alertas Registrados (<span id="events-count-badge">0</span>)
+              </button>
             </div>
           </div>
-          <p class="tile-footer-note" id="aqiRecommendation">Concentração de gases dentro dos padrões ideais.</p>
-        </article>
 
-        <!-- 2. Precipitação / Chuva (LM393) -->
-        <article class="ios-glass-card bento-tile">
-          <header class="ios-section-label">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-            </svg>
-            <span>PRECIPITAÇÃO (MH-RD)</span>
-          </header>
-          <div class="tile-main-content">
-            <div class="tile-big-reading">
-              <span id="rainPct">0%</span>
-            </div>
-            <span class="tile-status-headline" id="rainStatusText">Sem Chuva</span>
-            <div class="ios-progress-track">
-              <div class="ios-progress-fill fill-blue" id="rainProgress" style="width: 0%;"></div>
+          <!-- Lista Visual de Medições (Estilo Barras de Temperatura do iPhone / Climatempo) -->
+          <div class="history-list-container" id="tab-content-windows">
+            <div class="climatempo-list" id="windows-list-body">
+              <div class="empty-state">Carregando medições da estação...</div>
             </div>
           </div>
-          <p class="tile-footer-note" id="rainDetail">Superfície condutiva seca no momento.</p>
-        </article>
 
-        <!-- 3. Sensação Térmica (Feels Like) -->
-        <article class="ios-glass-card bento-tile">
-          <header class="ios-section-label">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
-            </svg>
-            <span>SENSAÇÃO TÉRMICA</span>
-          </header>
-          <div class="tile-main-content">
-            <div class="tile-big-reading">
-              <span id="feelsLikeValue">--°</span>
+          <!-- Lista de Alertas / Eventos -->
+          <div class="history-list-container hidden" id="tab-content-events">
+            <div class="events-list" id="events-list-body">
+              <div class="empty-state">Nenhum alerta climático registrado recentemente.</div>
             </div>
-            <span class="tile-status-headline" id="feelsLikeBadge">Confortável</span>
-          </div>
-          <p class="tile-footer-note" id="feelsLikeNote">Calculada pela equação de Rothfusz combinando temperatura e umidade.</p>
-        </article>
-
-        <!-- 4. Umidade & Ponto de Orvalho (DHT22) -->
-        <article class="ios-glass-card bento-tile">
-          <header class="ios-section-label">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-            </svg>
-            <span>UMIDADE (DHT22)</span>
-          </header>
-          <div class="tile-main-content">
-            <div class="tile-big-reading">
-              <span id="humidityValue">--%</span>
-            </div>
-            <span class="tile-status-headline" id="humidityComfort">Faixa Ideal</span>
-          </div>
-          <p class="tile-footer-note">O ponto de orvalho é de <strong id="dewPoint">--°C</strong> no momento.</p>
-        </article>
-
-        <!-- 5. Pressão Barométrica & Altitude (BMP280) -->
-        <article class="ios-glass-card bento-tile">
-          <header class="ios-section-label">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-            <span>PRESSÃO (BMP280)</span>
-          </header>
-          <div class="tile-main-content">
-            <div class="tile-big-reading">
-              <span id="pressureValue">--</span>
-              <small class="tile-unit">hPa</small>
-            </div>
-            <span class="tile-status-headline" id="pressureTrend">Estável</span>
-          </div>
-          <p class="tile-footer-note">Altitude barométrica estimada: <strong id="altitudeValue">-- m</strong>.</p>
-        </article>
-
-        <!-- 6. Luminosidade & Radiação (LDR) -->
-        <article class="ios-glass-card bento-tile">
-          <header class="ios-section-label">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"/>
-              <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-              <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-            </svg>
-            <span>LUMINOSIDADE (LDR)</span>
-          </header>
-          <div class="tile-main-content">
-            <div class="tile-big-reading">
-              <span id="lightValue">--%</span>
-            </div>
-            <span class="tile-status-headline" id="lightLevel">Moderada</span>
-            <div class="ios-progress-track">
-              <div class="ios-progress-fill fill-amber" id="lightProgress" style="width: 50%;"></div>
-            </div>
-          </div>
-          <p class="tile-footer-note" id="lightAnnotation">Incidência luminosa no fotoresistor.</p>
-        </article>
-
-      </section>
-
-      <!-- GRÁFICO INTERATIVO DE SÉRIES TEMPORAIS -->
-      <section class="ios-glass-card chart-section-card" id="chartSection">
-        <div class="chart-card-top">
-          <div>
-            <header class="ios-section-label">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-              </svg>
-              <span>CURVA ANALÍTICA DE SÉRIES TEMPORAIS</span>
-            </header>
-            <p class="chart-sub-caption" id="chartPointsCount">Sincronizando série temporal...</p>
-          </div>
-
-          <div class="ios-pill-tabs" role="tablist">
-            <button class="segment-btn active" data-metric="temperature" role="tab" aria-selected="true">Temp</button>
-            <button class="segment-btn" data-metric="humidity" role="tab" aria-selected="false">Umidade</button>
-            <button class="segment-btn" data-metric="pressure" role="tab" aria-selected="false">Pressão</button>
-            <button class="segment-btn" data-metric="air_quality" role="tab" aria-selected="false">Ar (PPM)</button>
-            <button class="segment-btn" data-metric="light" role="tab" aria-selected="false">Luz</button>
           </div>
         </div>
 
-        <div class="chart-canvas-holder">
-          <canvas id="telemetryChart"></canvas>
+        <!-- Coluna Direita: Mapa da Estação + Resumo Operacional -->
+        <div class="card map-and-status-card">
+          <div class="card-simple-header">
+            <div>
+              <h3>Localização da Estação</h3>
+              <p class="card-sub" id="map-subtitle-coords">Monitoramento de superfície — São Paulo, SP</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button type="button" class="clean-btn" id="btn-locate-station" title="Detectar localização exata pelo navegador (GPS / Wi-Fi)">
+                📍 Localizar estação
+              </button>
+              <span class="device-badge" id="header-device-id">esp32-meteo-01</span>
+            </div>
+          </div>
+
+          <div class="map-container" id="station-map" aria-label="Mapa da estação"></div>
+
+          <div class="system-summary-row">
+            <div class="sys-stat">
+              <span class="sys-label">Leituras ao vivo</span>
+              <strong class="sys-val" id="diag-hot-ticks">0</strong>
+              <span class="sys-note" id="hot-tick-badge">Amostras RAM</span>
+            </div>
+            <div class="sys-stat">
+              <span class="sys-label">Salvos no banco</span>
+              <strong class="sys-val" id="diag-cold-writes">0</strong>
+              <span class="sys-note">Janelas de 5 min</span>
+            </div>
+            <div class="sys-stat">
+              <span class="sys-label">Economia de banco</span>
+              <strong class="sys-val text-emerald" id="diag-io-saved">0%</strong>
+              <span class="sys-note" id="diag-uptime">Filtro ativo</span>
+            </div>
+          </div>
         </div>
-      </section>
+      </div>
+    </section>
+  </main>
 
-      <!-- MAPA DE GEOLOCALIZAÇÃO + TELEMETRIA DO SISTEMA (HOT/COLD PATH & ESP32) -->
-      <section class="bottom-split-grid">
+  <!-- Bibliotecas Externas -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-        <!-- Mapa Apple Dark / Voyager -->
-        <article class="ios-glass-card map-section-card" id="mapSection">
-          <header class="ios-section-label">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
-            </svg>
-            <span>MAPA DE COBERTURA SENSORIAL (RAIO 450M)</span>
-          </header>
-          <div class="map-viewport" id="mapContainer"></div>
-          <div class="map-meta-footer">
-            <span id="mapCoords">-23.5505° S, -46.6333° W</span>
-            <span>Geometria Analítica • Circunferência de Alcance</span>
-          </div>
-        </article>
-
-        <!-- Diagnóstico de Arquitetura Hot/Cold Path & ESP32 -->
-        <article class="ios-glass-card system-health-card">
-          <header class="ios-section-label">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/>
-            </svg>
-            <span>ENGENHARIA DO SISTEMA (HOT/COLD PATH & ESP32)</span>
-          </header>
-
-          <div class="sys-stats-list">
-            <div class="sys-stat-row">
-              <span class="sys-label">Status do Pipeline</span>
-              <span class="sys-val badge-green" id="pipeReason">HOT PATH ATIVO</span>
-            </div>
-            <div class="sys-stat-row">
-              <span class="sys-label">Leituras em RAM (Hot Ticks)</span>
-              <span class="sys-val" id="pipeHotTicks">--</span>
-            </div>
-            <div class="sys-stat-row">
-              <span class="sys-label">Escritas no PostgreSQL (Cold)</span>
-              <span class="sys-val" id="pipeColdWrites">--</span>
-            </div>
-            <div class="sys-stat-row">
-              <span class="sys-label">Sinal Wi-Fi ESP32 (RSSI)</span>
-              <span class="sys-val" id="diagRssi">-- dBm</span>
-            </div>
-            <div class="sys-stat-row">
-              <span class="sys-label">Memória SRAM Livre</span>
-              <span class="sys-val" id="diagHeap">-- KB</span>
-            </div>
-            <div class="sys-stat-row">
-              <span class="sys-label">Uptime da Estação</span>
-              <span class="sys-val" id="diagUptime">--</span>
-            </div>
-            <div class="sys-stat-row">
-              <span class="sys-label">Identificador do Nó</span>
-              <span class="sys-val mono" id="diagDevice">esp32-meteo-01</span>
-            </div>
-          </div>
-
-          <p class="tile-footer-note">
-            Arquitetura Dual-Pipeline: atualizações de tela via SSE sem onerar I/O de disco; persistência consolidada a cada 5 min ou por Deadband.
-          </p>
-        </article>
-
-      </section>
-
-      <footer class="ios-footer">
-        <p><strong>EcoPulse</strong> • Projeto Integrado Multidisciplinar II (PIM II) • Ciência da Computação — UNIP</p>
-      </footer>
-
-    </main>
-
-  </div>
-
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR FLUTUANTE (Idêntica à Barra Inferior da Foto) -->
-  <nav class="ios-bottom-toolbar" aria-label="Navegação rápida">
-    <button class="toolbar-circle-btn" id="btnScrollMap" title="Ir para o Mapa de Cobertura" aria-label="Mapa">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-        <line x1="8" y1="2" x2="8" y2="18"></line>
-        <line x1="16" y1="6" x2="16" y2="22"></line>
-      </svg>
-    </button>
-
-    <button class="toolbar-center-pill" id="btnScrollTop" title="Voltar ao Topo (Condições Atuais)">
-      <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
-        <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
-      </svg>
-      <span class="dot-indicator active" id="dotTop"></span>
-      <span class="dot-indicator" id="dotDash"></span>
-    </button>
-
-    <button class="toolbar-circle-btn" id="btnScrollDashboard" title="Alternar Dashboard Completo" aria-label="Dashboard de Sensores">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="8" y1="6" x2="21" y2="6"></line>
-        <line x1="8" y1="12" x2="21" y2="12"></line>
-        <line x1="8" y1="18" x2="21" y2="18"></line>
-        <line x1="3" y1="6" x2="3.01" y2="6"></line>
-        <line x1="3" y1="12" x2="3.01" y2="12"></line>
-        <line x1="3" y1="18" x2="3.01" y2="18"></line>
-      </svg>
-    </button>
-  </nav>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/charts.js"></script>
-  <script src="js/map.js"></script>
-  <script src="js/app.js"></script>
+  <!-- Scripts -->
+  <script src="./js/charts.js"></script>
+  <script src="./js/map.js"></script>
+  <script src="./js/app.js"></script>
 </body>
 </html>

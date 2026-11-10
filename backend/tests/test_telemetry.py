@@ -1,18 +1,41 @@
 """
 Testes unitários automatizados para a API EcoPulse — Arquitetura Hot/Cold Path.
 Valida autenticação, retenção em RAM no Hot Path, agregação e disparo por Deadband no Cold Path.
+Utiliza banco SQLite isolado em memória (StaticPool) para nunca poluir o banco real (ecopulse.db).
 """
 from fastapi.testclient import TestClient
-from app.main import app, API_SECRET_KEY, telemetry_engine
-from app.database import Base, engine
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
+from app.main import app, API_SECRET_KEY, telemetry_engine
+from app.database import Base, get_db
+
+# Banco SQLite em memória exclusivo para a suíte de testes
+TEST_ENGINE = create_engine(
+    "sqlite:///:memory:",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=TEST_ENGINE)
+
+
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 
 def setup_function():
-    """Limpa banco de teste e estado em memória antes de cada caso de teste."""
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    """Limpa banco de teste isolado em memória antes de cada caso de teste."""
+    Base.metadata.drop_all(bind=TEST_ENGINE)
+    Base.metadata.create_all(bind=TEST_ENGINE)
     telemetry_engine.reset_state()
 
 

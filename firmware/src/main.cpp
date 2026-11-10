@@ -22,7 +22,7 @@
 #endif
 
 #ifndef API_URL
-  #define API_URL       "http://192.168.18.121:8000/api/v1/telemetry"
+  #define API_URL       "http://192.168.18.124:8000/api/v1/telemetry"
 #endif
 
 #ifndef API_KEY
@@ -93,7 +93,7 @@ struct LDRData {
 
 // 5. Sensor de Chuva / Pluviometro (Placa condutiva com modulo LM393 - ADC1)
 #define RAIN_PIN 34                // Pino GPIO 34 (Canal ADC1 - pino de entrada exclusiva)
-const int CHUVA_LIMIAR_SECO = 3800; // Acima deste valor ADC a placa condutiva esta seca
+const int CHUVA_LIMIAR_SECO = 500; // Acima deste valor ADC (~0.5V) a placa condutiva esta seca (flutuacao de circuito aberto)
 
 // Estrutura de dados para o Sensor de Chuva
 struct RainData {
@@ -136,6 +136,9 @@ void enviarOutput(String texto) {
 
 // Funcao com multisampling para filtrar ruidos eletricos de alta frequencia do ADC
 int lerAdcMedio(int pino, int amostras = 16) {
+  // Leitura de descarte para estabilizar o capacitor Sample-and-Hold do multiplexador ADC1
+  analogRead(pino);
+  delayMicroseconds(100);
   long soma = 0;
   for (int i = 0; i < amostras; i++) {
     soma += analogRead(pino);
@@ -257,15 +260,19 @@ LDRData lerLDR() {
   return dados;
 }
 
-// Executa a leitura do sensor de chuva / placa pluviometrica (GPIO 35)
-RainData lerChuva() {
+// Executa a leitura do sensor de chuva / placa pluviometrica (GPIO 34)
+RainData lerChuva(int ldrRawAdc = 2000) {
   RainData dados;
   dados.rawAdc = lerAdcMedio(RAIN_PIN, 16);
   dados.voltageV = lerTensaoPino(RAIN_PIN, dados.rawAdc);
 
-  // Comportamento: Placa seca = ADC alto (~4095). Placa molhada = ADC baixo (~0-1500).
-  // Invertemos a relacao para que 0% = seco e 100% = totalmente submerso/encharcado.
-  dados.intensityPct = (1.0f - (dados.rawAdc / 4095.0f)) * 100.0f;
+  // Comportamento real na bancada: Quando a placa condutiva esta seca (circuito aberto),
+  // o pino GPIO 34 flutua entre ADC 650 e 2800. Quando molhada, a conducao derruba o ADC abaixo de 500.
+  if (dados.rawAdc >= CHUVA_LIMIAR_SECO) {
+    dados.intensityPct = 0.0f;
+  } else {
+    dados.intensityPct = ((float)(CHUVA_LIMIAR_SECO - dados.rawAdc) / 450.0f) * 100.0f;
+  }
   if (dados.intensityPct < 0.0f) dados.intensityPct = 0.0f;
   if (dados.intensityPct > 100.0f) dados.intensityPct = 100.0f;
 
@@ -553,7 +560,7 @@ void loop() {
     bloco += " | " + ldr.condicao + "\n";
 
     // 5. Leitura do Sensor de Chuva / Pluviômetro
-    RainData rain = lerChuva();
+    RainData rain = lerChuva(ldr.rawAdc);
     bloco += "[CHUVA]   ADC: " + String(rain.rawAdc);
     bloco += " | Pino: " + String(rain.voltageV, 2) + " V";
     bloco += " | Agua: " + String(rain.intensityPct, 1) + " %";

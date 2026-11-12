@@ -165,6 +165,13 @@
     document.getElementById("header-device-id").textContent = data.deviceId;
     document.getElementById("last-update-time").textContent = fmtTime(data.recordedAt, true);
 
+    const packetAgeMs = Date.now() - parseIsoDate(data.recordedAt).getTime();
+    if (!Number.isNaN(packetAgeMs) && packetAgeMs > 30000) {
+      setConnectionStatus("offline", "Histórico (ESP32 offline)");
+    } else {
+      setConnectionStatus("online", "Ao vivo");
+    }
+
     // Hero Card (Esquerda)
     document.getElementById("val-temp").textContent = fmtNum(data.tempC, 1);
     document.getElementById("val-temp-min").textContent = `${fmtNum(data.tempMin, 1)}°`;
@@ -458,7 +465,7 @@
     eventSource = new EventSource(`${API_BASE}/api/v1/telemetry/stream`);
 
     eventSource.onopen = function () {
-      setConnectionStatus("online", "Ao vivo");
+      // O status "Ao vivo" só é ativado quando há pacote recente da ESP32
     };
 
     eventSource.onmessage = function (event) {

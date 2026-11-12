@@ -433,6 +433,11 @@ void setup() {
     tentativas++;
   }
 
+  configurarRotasWeb();
+  server.begin();
+  telnetServer.begin();
+  telnetServer.setNoDelay(true);
+
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\n[OK] Wi-Fi Conectado!");
     Serial.print("   -> Endereco IP: ");
@@ -440,13 +445,9 @@ void setup() {
     if (MDNS.begin("esp32")) {
       Serial.println("   -> Endereco mDNS: http://esp32.local");
     }
-    server.begin();
-    configurarRotasWeb();
-    telnetServer.begin();
-    telnetServer.setNoDelay(true);
     Serial.println("   -> Stream de Terminal ativo na porta 23.");
   } else {
-    Serial.println("\n[ERRO] Nao foi possivel conectar ao Wi-Fi. Rodando offline.");
+    Serial.println("\n[ALERTA] Wi-Fi ainda nao conectou no boot. Tentara reconectar automaticamente no loop.");
   }
 
   enviarOutput("\n==================================================\n");
@@ -467,8 +468,10 @@ void setup() {
   enviarOutput("Setup finalizado. Lendo todos os sensores a cada 2s...\n\n");
 }
 
+unsigned long ultimaTentativaWifi = 0;
+
 void loop() {
-  // Reconecta o Wi-Fi automaticamente se o sinal cair
+  // Reconecta o Wi-Fi automaticamente se o sinal cair ou se nao conectou no setup
   if (WiFi.status() == WL_CONNECTED) {
     server.handleClient();
 
@@ -482,6 +485,11 @@ void loop() {
         telnetServer.available().stop(); // Rejeita conexoes extras
       }
     }
+  } else if (millis() - ultimaTentativaWifi >= 10000) {
+    ultimaTentativaWifi = millis();
+    Serial.println("[Wi-Fi] Tentando reconectar ao SSID: " + String(ssid));
+    WiFi.disconnect();
+    WiFi.begin(ssid, password);
   }
 
   // Executa a leitura exatamente a cada 2 segundos sem bloquear o processador

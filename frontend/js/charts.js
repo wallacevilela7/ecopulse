@@ -42,7 +42,9 @@ window.EcoPulseCharts = (function () {
 
   function formatHourLabel(isoStr) {
     if (!isoStr) return "--:--";
-    const d = new Date(isoStr);
+    const s = String(isoStr).trim();
+    const normalized = s.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(s) ? s : `${s}Z`;
+    const d = new Date(normalized);
     if (Number.isNaN(d.getTime())) return "--:--";
     return d.toLocaleTimeString("pt-BR", {
       hour: "2-digit",

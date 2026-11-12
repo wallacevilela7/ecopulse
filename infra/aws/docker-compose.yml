@@ -1,7 +1,5 @@
-version: '3.8'
-
 services:
-  # 1. Servidor Web Nginx (Porteiro / Reverse Proxy + Static Server)
+  # 1. Servidor Web Nginx (Reverse Proxy + Frontend Estático + Streaming SSE)
   webserver:
     image: nginx:alpine
     container_name: ecopulse_webserver
@@ -16,13 +14,15 @@ services:
     networks:
       - ecopulse_net
 
-  # 2. API Backend (FastAPI + SQLAlchemy)
+  # 2. API Backend Dual-Pipeline (FastAPI + SQLAlchemy)
   api:
     build:
       context: ../../backend
       dockerfile: ../infra/aws/Dockerfile
     container_name: ecopulse_api
     restart: always
+    ports:
+      - "8000:8000"
     environment:
       - APP_ENV=production
       - API_PORT=8000
@@ -30,12 +30,12 @@ services:
       - COLD_PATH_WINDOW_SECONDS=${COLD_PATH_WINDOW_SECONDS:-300}
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/ecopulse_db
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - ecopulse_net
-    # A porta 8000 NÃO é exposta para o host externo por segurança; apenas na rede interna Docker
 
-  # 3. Banco de Dados Relacional (PostgreSQL)
+  # 3. Banco de Dados Relacional (PostgreSQL 16)
   db:
     image: postgres:16-alpine
     container_name: ecopulse_postgres
@@ -46,9 +46,13 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-ecopulse_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ecopulse_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - ecopulse_net
-    # A porta 5432 NÃO é exposta externamente por segurança; acessível apenas pela API
 
 networks:
   ecopulse_net:

@@ -22,7 +22,7 @@
 #endif
 
 #ifndef API_URL
-  #define API_URL       "http://192.168.18.124:8000/api/v1/telemetry"
+  #define API_URL       "http://54.235.41.91/api/v1/telemetry"
 #endif
 
 #ifndef API_KEY

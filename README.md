@@ -3,8 +3,9 @@
 > **Projeto Integrado Multidisciplinar II (PIM II)**  
 > **Curso:** Ciência da Computação — 2º Semestre  
 > **Instituição:** Universidade Paulista (UNIP)  
-> **Autor:** Wallace Vilela  
-> **Status:** Fase 6 — Dual-Pipeline Hot/Cold Path (WMO-No. 8 / INMET), Dashboard v3.0 (Climatempo + Google Weather + Apple Bento) e Deploy AWS EC2 (Docker Compose)
+> **Autor:** Wallace Vilela Silva (RA 2620048)  
+> **Status:** Versão Final (v3.0) em Produção — Dual-Pipeline Hot/Cold Path (WMO-No. 8 / INMET), Dashboard v3.0 e Cloud AWS EC2 com HTTPS Let's Encrypt  
+> **Produção (HTTPS):** [https://ecopulse-unip.duckdns.org](https://ecopulse-unip.duckdns.org) | **Swagger API:** [https://ecopulse-unip.duckdns.org/docs](https://ecopulse-unip.duckdns.org/docs) | **Healthcheck:** [https://ecopulse-unip.duckdns.org/health](https://ecopulse-unip.duckdns.org/health)
 
 ---
 
@@ -126,32 +127,34 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 * **Documentação Swagger interativa:** `http://localhost:8000/docs`
 * **Testes unitários isolados (in-memory SQLite):** `PYTHONPATH=. pytest tests/ -v`
 
-### 4.2. Execução em Produção na AWS EC2 (Docker Compose: Nginx + FastAPI + PostgreSQL 16)
+### 4.2. Produção na AWS EC2 com Domínio DuckDNS e HTTPS Let's Encrypt
+O sistema encontra-se implantado em produção na **AWS EC2 (`54.235.41.91`)** sob o domínio **`https://ecopulse-unip.duckdns.org`** com certificado TLS oficial da **Let's Encrypt** e pipeline **CI/CD Zero-Downtime** via GitHub Actions:
 ```bash
 cd infra/aws
 chmod +x setup_ec2.sh && ./setup_ec2.sh
 docker compose up -d --build
 ```
-* **Dashboard Web (Nginx porta 80):** `http://<IP_PUBLICO_EC2>`
-* **API / Telemetria ESP32:** `http://<IP_PUBLICO_EC2>/api/v1/telemetry`
-* Consulte o passo a passo completo de criação da EC2 em [**infra/aws/README.md**](file:///home/wvs/Documents/pim2/ecopulse/infra/aws/README.md).
+* **Dashboard Web Seguro (HTTPS porta 443):** [https://ecopulse-unip.duckdns.org](https://ecopulse-unip.duckdns.org)
+* **Documentação Interativa Swagger:** [https://ecopulse-unip.duckdns.org/docs](https://ecopulse-unip.duckdns.org/docs)
+* **Endpoint de Telemetria da ESP32 (HTTP porta 80):** `http://54.235.41.91/api/v1/telemetry`
+* Consulte o passo a passo completo em [**infra/aws/README.md**](file:///home/wvs/Documents/pim2/ecopulse/infra/aws/README.md).
 
 ### 4.3. Firmware (ESP32)
 1. Crie seu arquivo `firmware/include/config.h` a partir do `config.h.example`.
-2. Configure seu SSID, senha de Wi-Fi e o endereço do servidor (`http://<IP_LOCAL_OU_EC2>:8000/api/v1/telemetry` ou porta `80` na EC2) na constante `API_URL`.
-3. Suba o código `firmware/src/main.cpp` para o ESP32 via Arduino IDE ou PlatformIO.
-4. O ESP32 transmitirá ao Hot Path a cada 2,5 segundos (ou imediatamente em eventos de oscilação de chuva, gases ou luminosidade).
+2. Configure seu SSID, senha de Wi-Fi (`2.4 GHz`) e o endereço do servidor (`http://54.235.41.91/api/v1/telemetry`) na constante `API_URL`.
+3. Suba o código `firmware/src/main.cpp` para o ESP32 via Arduino IDE / `arduino-cli` ou PlatformIO.
+4. Na bancada física, mantenha a **Fonte MB102** ligada (alimentando o barramento 5V exclusivo do aquecedor do MQ-135) e o **cabo USB conectado à ESP32** (garantindo corrente estável para os picos de rádio Wi-Fi). O ESP32 transmitirá ao Hot Path a cada 2,5 segundos ou imediatamente em eventos de oscilação climática.
 
 ---
 
-## 5. Diário de Bordo e Roadmap de Evolução
+## 5. Diário de Bordo e Roadmap de Evolução (100% Concluído)
 
-- [x] **Etapa 1 — Especificações Técnicas e Modelagem UML**
+- [x] **Etapa 1 — Especificações Técnicas, Engenharia de Requisitos e Modelagem UML**
 - [x] **Etapa 2 — Validação e Integração do Hardware de Bancada (5 Sensores no ADC1/I2C)**
 - [x] **Etapa 3 — Firmware Reativo, Reconexão Automática Wi-Fi e Calibração Analógica**
 - [x] **Etapa 4 — Arquitetura Dual-Pipeline Hot/Cold Path (WMO-No. 8 / INMET), Deadband LDR/Chuva e Banco Relacional**
 - [x] **Etapa 5 — Interface Web v3.0 (Climatempo + Google Weather + Apple Bento) e Geolocalização Híbrida**
-- [x] **Etapa 6 — Orquestração Cloud AWS EC2 (Docker Compose: Nginx + FastAPI + PostgreSQL 16)**
+- [x] **Etapa 6 — Deploy em Produção na AWS EC2 (Docker Compose + Nginx HTTPS Let's Encrypt + PostgreSQL 16 + CI/CD GitHub Actions)**
 
 ---
 

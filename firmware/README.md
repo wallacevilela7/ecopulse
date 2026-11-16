@@ -1,49 +1,40 @@
-# Firmware Embarcado ESP32 - Planejamento e Especificação
+# Firmware Embarcado ESP32 — Estação Meteorológica EcoPulse (v3.0)
 
-Este diretório conterá o firmware em C++ para o microcontrolador **ESP32 NodeMCU**, responsável pela aquisição de sinais dos sensores físicos, empacotamento em JSON e despacho seguro para a API REST via Wi-Fi.
-
----
-
-## 1. Diretrizes Técnicas do Firmware
-
-* **Ambiente de Desenvolvimento Recomendado:** PlatformIO (VS Code / CLI) ou Arduino IDE 2.x.
-* **Framework:** Arduino Core para ESP32 (versão estável 2.x / 3.x).
-* **Padrão de Execução:** Temporizador não-bloqueante baseado em `millis()`, evitando chamadas a `delay()` para manter o microcontrolador responsivo.
-* **Bibliotecas Planejadas:**
-  * `DHT sensor library` (Adafruit) + `Adafruit Unified Sensor` (leitura do DHT22)
-  * `Adafruit BMP280 Library` (leitura digital via I2C)
-  * `ArduinoJson` (v7.x - serialização eficiente e com alocação estática no heap)
-  * `WiFi.h`, `HTTPClient.h` e `time.h` (nativas do ESP32 para conectividade e NTP)
+Firmware em C++ para o microcontrolador **ESP32 DevKit V1**, responsável pela aquisição simultânea dos **5 sensores físicos** (no barramento I2C e no conversor ADC1), filtragem digital por *multisampling*, servidor web/Telnet de diagnóstico local e transmissão reativa de telemetria HTTP para a nuvem AWS EC2.
 
 ---
 
-## 2. Estrutura de Diretórios Planejada
+## 1. Especificações Técnicas Implementadas
 
+* **Ambiente de Compilação:** Arduino IDE 2.x / `arduino-cli` (`fqbn esp32:esp32:esp32`) ou PlatformIO.
+* **Temporização Não-Bloqueante:** Controle de ciclo por `millis()` (`intervaloLeitura = 2000ms`), mantendo o WebServer local (porta `80`), o servidor Telnet (porta `23`) e a pilha TCP/IP responsivos.
+* **Filtragem Analógica no ADC1 (`lerAdcMedio`):** Leitura prévia de descarte para estabilização do capacitor *Sample-and-Hold* do multiplexador interno do ESP32 seguida da média aritmética de **16 amostras** por canal com atenuação `ADC_11db` (`0V` a `3.3V`).
+* **Reconexão Automática Wi-Fi e I2C:** Reconexão automática ao roteador `2.4 GHz` a cada `10s` em caso de queda de sinal e reinicialização automática do barramento I2C (`D21`/`D22`) caso o BMP280 sofra ruído elétrico.
+* **Gatilho Reativo de Baixa Latência:** Envia telemetria HTTP a cada `2,5 segundos` em regime nominal ou **imediatamente** se detectar início/fim de chuva, variação de gases $\ge 40\text{ ppm}$ ou mudança de luminosidade no LDR $\ge 15\%$.
+
+---
+
+## 2. Mapa de Pinos e Calibração dos 5 Sensores
+
+| Sensor | Pino ESP32 | Alimentação | Calibração / Equacionamento no Firmware |
+| :--- | :---: | :---: | :--- |
+| **DHT22 (Temp/Umidade)** | `GPIO 4` | `3.3V` | Leitura digital One-Wire com descarte de `isnan()`. |
+| **BMP280 (Pressão/Alt)** | `GPIO 21 / 22` | `3.3V` | Barramento I2C (`0x76` / `0x77`) a `100 kHz`; altitude barométrica ($P_0 = 1013,25\text{ hPa}$). |
+| **MQ-135 (Gases/Ar)** | `GPIO 32` (ADC1) | `5.0V` (MB102) | Reconstituição do divisor 1kΩ/2kΩ ($V_{\text{sensor}} = 1,5 \times V_{\text{pino}}$) e curva de potência $\text{PPM} = 116,602 \cdot (R_s/R_0)^{-2,769}$. |
+| **LDR 5mm (Luz)** | `GPIO 35` (ADC1) | `3.3V` | Escala percentual inversa calibrada: $\text{Luz}(\%) = (1 - \text{ADC}/4095) \times 100$. |
+| **Chuva (LM393 + MH-RD)** | `GPIO 34` (ADC1) | `3.3V` | Limiar calibrado de circuito aberto (`CHUVA_LIMIAR_SECO = 500`): $\text{ADC} \ge 500 \Rightarrow 0\%$ (seco). |
+
+---
+
+## 3. Compilação e Upload via Linha de Comando (`arduino-cli`)
+
+1. Copie `include/config.h.example` para `include/config.h` e configure o SSID `2.4 GHz`, a senha e a URL da API (`http://54.235.41.91/api/v1/telemetry`).
+2. Conecte a ESP32 ao computador via cabo USB (`/dev/ttyACM0` ou `/dev/ttyUSB0`) mantendo a fonte MB102 ligada na protoboard para alimentar a linha de `5.0V` do MQ-135.
+3. Compile e grave o firmware:
+```bash
+mkdir -p /tmp/ecopulse_sketch
+cp src/main.cpp /tmp/ecopulse_sketch/ecopulse_sketch.ino
+cp include/config.h /tmp/ecopulse_sketch/config.h
+arduino-cli compile --fqbn esp32:esp32:esp32 /tmp/ecopulse_sketch
+arduino-cli upload -p /dev/ttyACM0 --fqbn esp32:esp32:esp32 /tmp/ecopulse_sketch
 ```
-firmware/
-├── include/
-│   └── config.h.example     # Modelo de credenciais Wi-Fi, URL da API e chave de autenticação
-├── src/
-│   └── main.cpp             # Ponto de entrada do firmware (setup e loop não-bloqueante)
-├── platformio.ini.example   # Configuração do ambiente de compilação PlatformIO
-└── README.md                # Este documento
-```
-
----
-
-## 3. Arquitetura Modular em C++
-
-Conforme modelado no [**Diagrama de Classes UML**](file:///home/wvs/Documents/ccomp-unip/2sem/pim2/ecopulse/docs/diagrama_classes.md), o firmware será dividido em três responsabilidades:
-
-1. **`SensorReader` (Hardware Abstraction Layer - HAL):** Encapsula as leituras analógicas (`analogRead`), aplica o fator de correção do divisor de tensão ($\times 1.5$) do MQ-135 e valida eventuais erros físicos (`isnan()`).
-2. **`TelemetryHttpClient` (Camada de Rede):** Estabelece a conexão Wi-Fi, sincroniza a hora mundial via servidor NTP (`pool.ntp.org`), monta o payload JSON com `ArduinoJson` e dispara o `HTTP POST` com cabeçalho `X-API-Key`.
-3. **`WeatherStationNode` (Orquestrador):** Gerencia o ciclo de amostragem (padrão: 30 segundos) e o tempo de pré-aquecimento do sensor de gases MQ-135 (3 minutos).
-
----
-
-## 4. Próximos Passos (Construção Conjunta Passo a Passo)
-
-1. [ ] Configuração do arquivo `platformio.ini` com pinos e parâmetros do microcontrolador.
-2. [ ] Teste unitário e de bancada de cada sensor individualmente via Monitor Serial.
-3. [ ] Implementação da classe `SensorReader` para unificar a leitura dos 5 sensores.
-4. [ ] Implementação da rotina de transmissão Wi-Fi e sincronização de horário NTP.

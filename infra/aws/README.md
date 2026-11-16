@@ -67,15 +67,26 @@ Verifique se os 3 containers estão saudáveis:
 ```bash
 docker compose ps
 ```
-- **Dashboard Web (Frontend + Gráficos + Mapa):** `http://<IP_PUBLICO_EC2>`
-- **Swagger / Documentação da API:** `http://<IP_PUBLICO_EC2>/docs`
-- **Healthcheck do Pipeline:** `http://<IP_PUBLICO_EC2>/health`
+- **Dashboard Web Oficial (HTTPS Let's Encrypt):** [https://ecopulse-unip.duckdns.org](https://ecopulse-unip.duckdns.org)
+- **Swagger / Documentação da API:** [https://ecopulse-unip.duckdns.org/docs](https://ecopulse-unip.duckdns.org/docs)
+- **Healthcheck do Pipeline:** [https://ecopulse-unip.duckdns.org/health](https://ecopulse-unip.duckdns.org/health)
 
 ---
 
-### 4. Apontar a ESP32 para a AWS EC2
-No arquivo [`firmware/include/config.h`](../../firmware/include/config.h), basta colocar o IP público da sua EC2:
-```cpp
-#define API_URL "http://<IP_PUBLICO_EC2>/api/v1/telemetry"
+### 4. Emissão do Certificado HTTPS (Let's Encrypt) + DuckDNS
+Para emitir/renovar o certificado TLS oficial em `/etc/letsencrypt` para o domínio `ecopulse-unip.duckdns.org`:
+```bash
+docker compose stop webserver
+docker run --rm -v /etc/letsencrypt:/etc/letsencrypt -p 80:80 certbot/certbot certonly \
+  --standalone -d ecopulse-unip.duckdns.org --non-interactive --agree-tos -m wallace.vilela9@gmail.com
+docker compose up -d webserver
 ```
-*(Funciona tanto na porta `80` via Nginx quanto em `:8000`).*
+
+---
+
+### 5. Apontar a ESP32 para a AWS EC2
+No arquivo [`firmware/include/config.h`](../../firmware/include/config.h), mantenha o endpoint HTTP na porta `80` da EC2 (`54.235.41.91`):
+```cpp
+#define API_URL "http://54.235.41.91/api/v1/telemetry"
+```
+*(O Nginx aceita o `POST /api/v1/telemetry` diretamente na porta `80` sem exigir handshake TLS na placa embarcada, enquanto redireciona usuários de navegador para `https://ecopulse-unip.duckdns.org` na porta `443`).*

@@ -43,13 +43,13 @@ Retorna em $O(1)$ o estado atual mantido no **Hot Path (RAM)** — ou reconstró
 
 ---
 
-### `GET /api/v1/telemetry/history?limit=48`
-Retorna as janelas temporais consolidadas pelo **Cold Path** (`tb_telemetry_aggregated_5m`), contendo médias e extremos (`temp_min`, `temp_max`), utilizadas para renderizar as barras de amplitude térmica estilo iOS Weather e os gráficos do Chart.js.
+### `GET /api/v1/telemetry/history?limit=24`
+Retorna as janelas temporais consolidadas pelo **Cold Path** (`tb_telemetry_aggregated_5m`), mescladas automaticamente com os ticks recentes do *ring-buffer* em memória RAM (`Hot Path`), contendo médias e extremos (`temp_min`, `temp_max`), utilizadas para renderizar as barras de amplitude térmica estilo Climatempo/iPhone e os gráficos suaves do Chart.js.
 
 ---
 
-### `GET /api/v1/telemetry/events?limit=10`
-Retorna os alertas e anomalias climáticas detectadas pelo algoritmo de **Deadband** e gravadas em `tb_telemetry_events` (início/fim de chuva, queda barométrica $\ge 2\text{ hPa}$, pico de gases $\ge 50\text{ PPM}$).
+### `GET /api/v1/telemetry/events?limit=15`
+Retorna os alertas e anomalias climáticas detectadas pelo algoritmo de **Deadband** e gravadas em `tb_telemetry_events` (início/fim de chuva `RAIN_START`/`RAIN_STOP`, variação de luminosidade no LDR `LUMINOSITY_SHIFT` $\ge 15\%$, umidade `HUMIDITY_SHIFT` $\ge 8\%$, queda barométrica `PRESSURE_DROP` $\ge 2\text{ hPa}$, pico de gases `GAS_SPIKE` $\ge 50\text{ PPM}$ e variação térmica `TEMP_SPIKE` $\ge 1,5^\circ\text{C}$).
 
 ---
 

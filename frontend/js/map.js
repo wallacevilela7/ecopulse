@@ -17,8 +17,8 @@ window.EcoPulseMap = (function () {
   let marker = null;
   let lastWeather = { tempC: null, humPct: null, pressHpa: null };
 
-  const TILE_LIGHT = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-  const TILE_DARK = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+  // Tiles oficiais gratuitos do OpenStreetMap (sem necessidade de API Key em qualquer domínio)
+  const OSM_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
   function applyLocationLabels(cityState, suburb, lat, lon, sourceLabel) {
     currentPlaceName = cityState || "São Paulo, SP";
@@ -239,13 +239,9 @@ window.EcoPulseMap = (function () {
 
   function updateThemeTiles() {
     if (!map) return;
-    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    const url = isDark ? TILE_DARK : TILE_LIGHT;
-
-    if (tileLayer) {
-      map.removeLayer(tileLayer);
+    if (!tileLayer) {
+      tileLayer = L.tileLayer(OSM_TILE_URL, { maxZoom: 19 }).addTo(map);
     }
-    tileLayer = L.tileLayer(url, { maxZoom: 18 }).addTo(map);
   }
 
   function updateStationPopup(tempC, humPct, pressHpa) {

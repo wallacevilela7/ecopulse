@@ -1,14 +1,16 @@
 services:
-  # 1. Servidor Web Nginx (Reverse Proxy + Frontend Estático + Streaming SSE)
+  # 1. Servidor Web Nginx (Reverse Proxy + Frontend Estático + Streaming SSE + HTTPS Let's Encrypt)
   webserver:
     image: nginx:alpine
     container_name: ecopulse_webserver
     restart: always
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ../../frontend:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - api
     networks:

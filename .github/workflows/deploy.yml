@@ -70,7 +70,7 @@ jobs:
             cd infra/aws
             docker compose build api
             docker compose up -d --no-deps api
-            docker compose restart webserver
+            docker compose up -d webserver
 
             # 4. Valida o healthcheck pós-deploy
             sleep 3
